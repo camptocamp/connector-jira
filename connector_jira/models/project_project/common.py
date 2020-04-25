@@ -97,23 +97,23 @@ class JiraProjectProject(models.Model):
     # we need to override the in connector_jira_service_desk and it would try
     # to create it again at every update because of the base implementation
     # in the binding's parent model.
-    @api.model_cr
-    def _add_sql_constraints(self):
-        # we replace the sql constraint by a python one
-        # to include the organizations
-        constraints = []
-        for (key, definition, msg) in self._sql_constraints:
-            if key == 'jira_binding_uniq':
-                conname = '%s_%s' % (self._table, key)
-                has_definition = tools.constraint_definition(
-                    self.env.cr, self._table, conname
-                )
-                if has_definition:
-                    tools.drop_constraint(self.env.cr, self._table, conname)
-            else:
-                constraints.append((key, definition, msg))
-        self._sql_constraints = constraints
-        super()._add_sql_constraints()
+    # @api.model_cr
+    # def _add_sql_constraints(self):
+    #     # we replace the sql constraint by a python one
+    #     # to include the organizations
+    #     constraints = []
+    #     for (key, definition, msg) in self._sql_constraints:
+    #         if key == 'jira_binding_uniq':
+    #             conname = '%s_%s' % (self._table, key)
+    #             has_definition = tools.constraint_definition(
+    #                 self.env.cr, self._table, conname
+    #             )
+    #             if has_definition:
+    #                 tools.drop_constraint(self.env.cr, self._table, conname)
+    #         else:
+    #             constraints.append((key, definition, msg))
+    #     self._sql_constraints = constraints
+    #     super()._add_sql_constraints()
 
     def _export_binding_domain(self):
         """Return the domain for the constraints on export bindings"""
@@ -195,7 +195,6 @@ class JiraProjectProject(models.Model):
                     binding.project_template_shared
                 )
 
-    @api.multi
     def _is_linked(self):
         for project in self:
             if project.sync_action == 'link':
@@ -208,7 +207,6 @@ class JiraProjectProject(models.Model):
         record._ensure_jira_key()
         return record
 
-    @api.multi
     def write(self, values):
         if 'project_template' in values:
             raise exceptions.UserError(
@@ -218,7 +216,6 @@ class JiraProjectProject(models.Model):
         self._ensure_jira_key()
         return res
 
-    @api.multi
     def _ensure_jira_key(self):
         if self.env.context.get('connector_no_export'):
             return
@@ -228,7 +225,6 @@ class JiraProjectProject(models.Model):
                     _('The JIRA Key is mandatory in order to link a project')
                 )
 
-    @api.multi
     def unlink(self):
         if any(self.mapped('external_id')):
             raise exceptions.UserError(
@@ -259,7 +255,6 @@ class ProjectProject(models.Model):
             keys = project.mapped('jira_bind_ids.jira_key')
             project.jira_key = ', '.join(keys)
 
-    @api.multi
     def name_get(self):
         names = []
         for project in self:
@@ -286,7 +281,6 @@ class ProjectProject(models.Model):
             limit=limit,
         ).name_get()
 
-    @api.multi
     def create_and_link_jira(self):
         action_link = self.env.ref('connector_jira.open_project_link_jira')
         action = action_link.read()[0]
