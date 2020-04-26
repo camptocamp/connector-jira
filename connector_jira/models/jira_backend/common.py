@@ -250,6 +250,16 @@ class JiraBackend(models.Model):
                 field = row['from_date_field']
                 if field in self._fields:
                     backend[field] = row['last_timestamp']
+            if not rows:
+                # TODO test me
+                # if computed field doesn't get any value in method we get
+                # CacheMiss error
+                backend.update({
+                    'import_project_task_from_date': False,
+                    'import_analytic_line_from_date': False,
+                    'delete_analytic_line_from_date': False,
+                })
+
 
     def _inverse_date_fields(self, field_name, component_usage):
         for rec in self:

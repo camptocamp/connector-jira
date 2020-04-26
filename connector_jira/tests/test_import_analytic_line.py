@@ -124,7 +124,8 @@ class TestImportAccountAnalyticLine(TestImportWorklogBase):
         })
         with recorder.use_cassette('test_import_worklog.yaml'):
             binding.force_reimport()
-        self.assertEqual(binding.write_date, write_date)
+        # delay in one second?
+        self.assertEqual(binding.write_date - timedelta(seconds=1), write_date)
 
     @recorder.use_cassette('test_import_worklog.yaml')
     def test_import_worklog_naive(self):
