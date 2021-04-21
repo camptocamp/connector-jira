@@ -58,7 +58,7 @@ class JiraWebhookController(http.Controller):
 
         delayable_model = env["jira.project.task"].with_delay()
         if action == "jira:issue_deleted":
-            delayable_model.delete_record(backend, issue_id)
+            delayable_model.delete_record(backend, issue_id, check_ext=True)
         else:
             delayable_model.import_record(backend, issue_id)
 
@@ -86,9 +86,9 @@ class JiraWebhookController(http.Controller):
         if action == "worklog_deleted":
             env["jira.account.analytic.line"].with_delay(
                 description=_(
-                    "Delete a local worklog which has " "been deleted on JIRA"
+                    "Delete a local worklog which has been deleted on JIRA"
                 )
-            ).delete_record(backend, worklog_id)
+            ).delete_record(backend, worklog_id, issue_id=issue_id, check_ext=True)
         else:
             env["jira.account.analytic.line"].with_delay(
                 description=_("Import a worklog from JIRA")

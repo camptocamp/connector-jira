@@ -70,3 +70,18 @@ class AnalyticLineBatchDeleter(Component):
         ).delete_record(
             self.backend_record, record_id, only_binding=False, set_inactive=False,
         )
+
+
+class JiraAnalyticLineDeleter(Component):
+    _name = "jira.analytic.line.deleter"
+    _inherit = "jira.deleter"
+    _apply_on = ["jira.account.analytic.line"]
+
+    def _still_exists(self, external_id, **kwargs):
+        """Return if the external resource exists"""
+        # Inverse args to match analytic lines methods
+        # relying on both issue_id and external_id
+        return super()._still_exists(
+            kwargs.get("issue_id"),
+            external_id,
+        )
