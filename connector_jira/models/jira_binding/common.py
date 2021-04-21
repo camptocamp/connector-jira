@@ -66,13 +66,15 @@ class JiraBinding(models.AbstractModel):
     @job(default_channel="root.connector_jira.import")
     @api.model
     def delete_record(
-        self, backend, external_id, only_binding=False, set_inactive=False
+        self, backend, external_id, only_binding=False, set_inactive=False,
+        **kwargs
     ):
         """Delete a record on Odoo"""
         with backend.work_on(self._name) as work:
             importer = work.component(usage="record.deleter")
             return importer.run(
-                external_id, only_binding=only_binding, set_inactive=set_inactive,
+                external_id, only_binding=only_binding,
+                set_inactive=set_inactive, **kwargs
             )
 
     @job(default_channel="root.connector_jira.export")
