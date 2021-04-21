@@ -529,10 +529,24 @@ class JiraDeleter(Component):
     _inherit = ["base.deleter", "jira.base"]
     _usage = "record.deleter"
 
-    def run(self, external_id, only_binding=False, set_inactive=False):
+    def _still_exists(self, *args, **kwargs):
+        """Return if the external resource exists"""
+        try:
+            self.backend_adapter.read(*args, **kwargs)
+        except IDMissingInBackend:
+            return False
+        return True
+
+    def run(self, external_id, only_binding=False, set_inactive=False,
+            check_ext=False, **kwargs):
         binding = self.binder.to_internal(external_id)
         if not binding.exists():
             return _("Binding not found")
+        # double check with external resource
+        if check_ext and self._still_exists(external_id, **kwargs):
+            return _(
+                "Wrongfully trying to delete a resource that still exists in Jira"
+            )
         if set_inactive:
             binding.active = False
         else:
