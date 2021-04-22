@@ -4,13 +4,18 @@
 
 from odoo.addons.component.core import Component
 
+DEFAULT_API_VERSION = 4
+
 
 class WorklogAdapter(Component):
     _inherit = "jira.worklog.adapter"
 
-    _tempo_timesheets_api_path_base = "{server}/rest/tempo-timesheets/3/{path}"
+    _tempo_timesheets_api_path_base = (
+        "{server}/rest/tempo-timesheets/{tempo_version}/{path}"
+    )
 
-    def _tempo_timesheets_get_url(self, path):
+    def _tempo_timesheets_get_url(self, path, tempo_version=DEFAULT_API_VERSION):
+        self.client._options["tempo_version"] = tempo_version
         return self.client._get_url(path, base=self._tempo_timesheets_api_path_base,)
 
     def read(self, issue_id, worklog_id):

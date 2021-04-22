@@ -40,7 +40,10 @@ class WorklogAdapter(Component):
     #     return {}
 
     def tempo_timesheets_approval_read(self, worklog):
-        url = self._tempo_timesheets_get_url("timesheet-approval/current")
+        url = self._tempo_timesheets_get_url(
+            "timesheet-approval/current",
+            tempo_version=3
+        )
         with self.handle_404():
             response = self.client._session.get(
                 url, params={"username": worklog["author"]["name"],}  # noqa
@@ -50,7 +53,10 @@ class WorklogAdapter(Component):
     def tempo_timesheets_approval_read_status_by_team(
         self, team_id, period_start
     ):  # noqa
-        url = self._tempo_timesheets_get_url("timesheet-approval")
+        url = self._tempo_timesheets_get_url(
+            "timesheet-approval",
+            tempo_version=3
+        )
         with self.handle_404():
             response = self.client._session.get(
                 url,
