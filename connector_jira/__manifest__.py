@@ -44,6 +44,7 @@
         "wizards/jira_account_analytic_line_import_views.xml",
         "security/ir.model.access.csv",
         "data/cron.xml",
+        "data/data.xml",
     ],
     "demo": ["demo/jira_backend_demo.xml"],
     "installable": True,
