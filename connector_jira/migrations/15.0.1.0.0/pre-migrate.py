@@ -3,7 +3,7 @@
 from openupgradelib import openupgrade
 
 
-def migrate(cr, version):
+def migrate(cr):
     add_missing_xmlid_on_channel(cr)
 
 
