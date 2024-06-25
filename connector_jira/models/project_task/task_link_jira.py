@@ -49,6 +49,7 @@ class TaskLinkJira(models.TransientModel):
     def default_get(self, fields):
         values = super().default_get(fields)
         context = self.env.context
+        # TODO: remove dependency on ``active_id[s]/model``
         if context.get("active_model") == "project.task" and context.get("active_id"):
             task = self.env["project.task"].browse(context["active_id"])
             project_linked_backends = task.mapped("project_id.jira_bind_ids.backend_id")

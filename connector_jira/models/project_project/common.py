@@ -34,8 +34,8 @@ class JiraProjectBaseFields(models.AbstractModel):
     jira_key = fields.Char(
         string="JIRA Key",
         required=True,
-        size=10,
-    )  # limit on JIRA
+        size=10,  # limit on JIRA
+    )
     sync_issue_type_ids = fields.Many2many(
         comodel_name="jira.issue.type",
         string="Issue Levels to Synchronize",
@@ -99,13 +99,10 @@ class JiraProjectProject(models.Model):
     def _add_sql_constraints(self):
         # we replace the sql constraint by a python one
         # to include the organizations
-        for key, definition, _msg in self._sql_constraints:
+        for key, definition, __ in self._sql_constraints:
             conname = f"{self._table}_{key}"
             if key == "jira_binding_uniq":
-                has_definition = tools.constraint_definition(
-                    self.env.cr, self._table, conname
-                )
-                if has_definition:
+                if tools.constraint_definition(self.env.cr, self._table, conname):
                     tools.drop_constraint(self.env.cr, self._table, conname)
             else:
                 tools.add_constraint(self.env.cr, self._table, conname, definition)
@@ -201,11 +198,11 @@ class JiraProjectProject(models.Model):
                 return True
         return False
 
-    @api.model
-    def create(self, values):
-        record = super().create(values)
-        record._ensure_jira_key()
-        return record
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records._ensure_jira_key()
+        return records
 
     def write(self, values):
         if "project_template" in values:
@@ -251,14 +248,12 @@ class ProjectProject(models.Model):
             keys = project.mapped("jira_bind_ids.jira_key")
             project.jira_key = ", ".join(keys)
 
-    def name_get(self):
-        names = []
-        for project in self:
-            project_id, name = super(ProjectProject, project).name_get()[0]
-            if project.jira_key:
-                name = f"[{project.jira_key}] {name}"
-            names.append((project_id, name))
-        return names
+    # pylint: disable=W8110
+    @api.depends("jira_key")
+    def _compute_display_name(self):
+        super()._compute_display_name()
+        for project in self.filtered("jira_key"):
+            project.display_name = f"[{project.jira_key}] {project.display_name}"
 
     @api.model
     def name_search(self, name="", args=None, operator="ilike", limit=100):
@@ -272,14 +267,13 @@ class ProjectProject(models.Model):
         ]
         if operator in expression.NEGATIVE_TERM_OPERATORS:
             domain = ["&", "!"] + domain[1:]
-        return self.search(
-            domain + (args or []),
-            limit=limit,
-        ).name_get()
+        projects = self.search(domain + (args or []), limit=limit)
+        return [(p.id, p.display_name) for p in projects.sudo()]
 
     def create_and_link_jira(self):
         action_link = self.env.ref("connector_jira.open_project_link_jira")
         action = action_link.read()[0]
+        # TODO: remove dependency on ``active_id[s]/model``
         action["context"] = dict(
             self.env.context,
             active_id=self.id,

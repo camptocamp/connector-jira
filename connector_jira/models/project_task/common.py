@@ -29,22 +29,18 @@ class JiraProjectTask(models.Model):
     )
     jira_key = fields.Char(
         string="Key",
-        readonly=True,
     )
     jira_issue_type_id = fields.Many2one(
         comodel_name="jira.issue.type",
         string="Issue Type",
-        readonly=True,
     )
     jira_epic_link_id = fields.Many2one(
         comodel_name="jira.project.task",
         string="Epic",
-        readonly=True,
     )
     jira_parent_id = fields.Many2one(
         comodel_name="jira.project.task",
         string="Parent Issue",
-        readonly=True,
         help="Parent issue when the issue is a subtask. "
         "Empty if the type of parent is filtered out "
         "of the synchronizations.",
@@ -153,14 +149,12 @@ class ProjectTask(models.Model):
             main_binding = record.jira_bind_ids[0]
             record.jira_issue_url = main_binding.jira_issue_url
 
-    def name_get(self):
-        names = []
-        for task in self:
-            task_id, name = super(ProjectTask, task).name_get()[0]
-            if task.jira_compound_key:
-                name = f"[{task.jira_compound_key}] {name}"
-            names.append((task_id, name))
-        return names
+    # pylint: disable=W8110
+    @api.depends("jira_compound_key")
+    def _compute_display_name(self):
+        super()._compute_display_name()
+        for task in self.filtered("jira_compound_key"):
+            task.display_name = f"[{task.jira_compound_key}] {task.display_name}"
 
     @api.model
     def name_search(self, name="", args=None, operator="ilike", limit=100):
@@ -174,10 +168,8 @@ class ProjectTask(models.Model):
         ]
         if operator in expression.NEGATIVE_TERM_OPERATORS:
             domain = ["&", "!"] + domain[1:]
-        return self.search(
-            domain + (args or []),
-            limit=limit,
-        ).name_get()
+        tasks = self.search(domain + (args or []), limit=limit)
+        return [(t.id, t.display_name) for t in tasks.sudo()]
 
     @api.model
     def _get_connector_jira_fields(self):
@@ -239,10 +231,11 @@ class ProjectTask(models.Model):
                 _("Task linked to JIRA Issue can not be deleted!")
             )
 
-    @api.model
-    def create(self, vals):
-        self._connector_jira_create_validate(vals)
-        return super().create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            self._connector_jira_create_validate(vals)
+        return super().create(vals_list)
 
     def write(self, vals):
         self._connector_jira_write_validate(vals)

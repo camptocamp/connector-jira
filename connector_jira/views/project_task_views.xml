@@ -17,26 +17,20 @@
                     </group>
                 </page>
             </xpath>
-            <field name="legend_done" position="after">
+            <field name="user_ids" position="after">
                 <field name="jira_compound_key" invisible="1" />
                 <field
                     name="jira_issue_url"
                     widget="url"
                     text_field="jira_compound_key"
-                    attrs="{'invisible': [('jira_bind_ids', '=', [])]}"
+                    invisible="not jira_bind_ids"
                 />
-                <field
-                    name="jira_issue_type"
-                    attrs="{'invisible': [('jira_bind_ids', '=', [])]}"
-                />
+                <field name="jira_issue_type" invisible="not jira_bind_ids" />
                 <field
                     name="jira_epic_link_task_id"
-                    attrs="{'invisible': [('jira_epic_link_task_id', '=', False)]}"
+                    invisible="not jira_epic_link_task_id"
                 />
-                <field
-                    name="jira_parent_task_id"
-                    attrs="{'invisible': [('jira_parent_task_id', '=', False)]}"
-                />
+                <field name="jira_parent_task_id" invisible="not jira_parent_task_id" />
             </field>
         </field>
     </record>
@@ -80,7 +74,7 @@
         <field name="model">project.task</field>
         <field name="inherit_id" ref="project.view_task_kanban" />
         <field name="arch" type="xml">
-            <field name="legend_done" position="after">
+            <field name="user_ids" position="after">
                 <field name="jira_issue_type" />
                 <field name="jira_bind_ids" />
                 <field name="jira_compound_key" />
@@ -97,7 +91,7 @@
                     </span>
                 </t>
             </xpath>
-            <xpath expr="//div[hasclass('dropdown-menu')]" position="inside">
+            <xpath expr="//t[@t-name='kanban-menu']" position="inside">
                 <div role="separator" class="dropdown-divider" />
                 <a
                     t-if="widget.editable"
@@ -118,15 +112,12 @@
         <field name="arch" type="xml">
             <form string="Jira Issue">
                 <group>
-                    <field
-                        name="backend_id"
-                        attrs="{'readonly': [('external_id', '!=', False)]}"
-                    />
+                    <field name="backend_id" readonly="external_id" />
                     <field name="external_id" />
-                    <field name="jira_key" />
-                    <field name="jira_issue_type_id" />
-                    <field name="jira_epic_link_id" />
-                    <field name="jira_parent_id" />
+                    <field name="jira_key" readonly="1" />
+                    <field name="jira_issue_type_id" readonly="1" />
+                    <field name="jira_epic_link_id" readonly="1" />
+                    <field name="jira_parent_id" readonly="1" />
                 </group>
             </form>
         </field>

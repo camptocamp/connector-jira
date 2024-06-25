@@ -6,12 +6,9 @@
         <field name="arch" type="xml">
             <form string="Jira Issue Type" create="0" delete="0" edit="0">
                 <group>
-                    <field name="name" />
-                    <field name="description" />
-                    <field
-                        name="backend_id"
-                        attrs="{'readonly': [('external_id', '!=', False)]}"
-                    />
+                    <field name="name" readonly="1" />
+                    <field name="description" readonly="1" />
+                    <field name="backend_id" readonly="external_id" />
                     <field name="external_id" />
                 </group>
             </form>

@@ -10,6 +10,7 @@ class JiraAccountAnalyticLineImport(models.TransientModel):
 
     def confirm(self):
         self.ensure_one()
+        # TODO: remove dependency on ``active_id[s]/model``
         model_name = self.env.context.get("active_model")
         record_ids = self.env.context.get("active_ids", [])
         if model_name == "account.analytic.line":

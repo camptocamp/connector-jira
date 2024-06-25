@@ -44,11 +44,7 @@ class JiraModelBinder(Component):
 
     _name = "jira.model.binder"
     _inherit = ["base.binder", "jira.base"]
-
-    _apply_on = [
-        "jira.issue.type",
-    ]
-
+    _apply_on = ["jira.issue.type"]
     _odoo_field = "id"
 
     def to_internal(self, external_id, unwrap=False):

@@ -2,18 +2,23 @@
 
 {
     "name": "JIRA Connector",
-    "version": "15.0.2.0.0",
+    "version": "17.0.1.0.0",
     "author": "Camptocamp,Odoo Community Association (OCA)",
     "license": "AGPL-3",
     "category": "Connector",
     "depends": [
-        "connector",
+        # Odoo community
         "project",
         "hr_timesheet",
-        "queue_job",
         "web",
-        "web_widget_url_advanced",
+        # OCA/connector
+        "connector",
+        # OCA/queue
+        "queue_job",
+        # OCA/server-ux
         "multi_step_wizard",
+        # OCA/web
+        "web_widget_url_advanced",
     ],
     "external_dependencies": {
         "python": [
@@ -24,7 +29,7 @@
             "requests-toolbelt>=0.9.1",
             "requests-jwt>=0.6.0",
             "PyJWT>=1.7.1,<2.9.0",
-            "cryptography<37",
+            "cryptography>=38,<39",  # Compatibility w/ Odoo 17.0 requirements
             "atlassian_jwt>=3.0.0",
         ],
     },

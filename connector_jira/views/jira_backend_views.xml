@@ -11,14 +11,15 @@
         <field name="model">jira.backend</field>
         <field name="arch" type="xml">
             <form string="Jira Backend">
-                <header groups="connector.group_connector_manager">
+                <header>
                     <button
                         name="check_connection"
                         type="object"
                         string="Check Connection"
-                        states="setup,running"
+                        invisible="state not in ('setup', 'running')"
+                        groups="connector.group_connector_manager"
                     />
-                    <field name="state" widget="statusbar" />
+                    <field name="state" widget="statusbar" readonly="1" />
                 </header>
                 <sheet>
                    <label for="name" class="oe_edit_only" />
@@ -33,15 +34,16 @@
                         >
                             <field
                                 name="uri"
+                                readonly="1"
                                 placeholder="e.g. https://example.com/jira"
                             />
                             <field name="verify_ssl" />
                             <field name="application_key" />
-                            <p class="oe_grey oe_inline" states="setup">
+                            <p class="oe_grey oe_inline" invisible="state != 'setup'">
                                 You can use the App Descriptor URL to register a new App on Atlassian Marketplace. Check the module README for the detailed process.
                             </p>
                             <field name="app_descriptor_url" />
-                            <field name="display_url" />
+                            <field name="display_url" readonly="1" />
                         </group>
                         <group name="main_configuration" string="Main Configuration">
                             <field name="company_id" />
@@ -49,13 +51,17 @@
                             <field name="project_template" />
                             <field
                                 name="project_template_shared"
-                                attrs="{'invisible': [('project_template', '!=', 'shared')],
-                        'required': [('project_template', '=', 'shared')]}"
+                                invisible="project_template != 'shared'"
+                                required="project_template == 'shared'"
                             />
                         </group>
                     </group>
                     <notebook>
-                        <page name="import" string="Imports" states="running">
+                        <page
+                            name="import"
+                            string="Imports"
+                            invisible="state != 'running'"
+                        >
                             <p class="oe_grey oe_inline">
                                 By clicking on the buttons,
                 you will initiate the synchronizations
@@ -91,9 +97,9 @@
                                 <div
                                     class="alert alert-danger"
                                     role="alert"
-                                    attrs="{'invisible': [('report_user_sync', '=', False)]}"
+                                    invisible="not report_user_sync"
                                 >
-                                    <field name="report_user_sync" />
+                                    <field name="report_user_sync" readonly="1" />
                                 </div>
                             </group>
                             <group>
@@ -216,7 +222,7 @@
                                         type="object"
                                         string="Configure Epic Link"
                                         class="btn-sm btn-link oe_inline"
-                                        attrs="{'invisible': [('state', '=', 'authenticate')]}"
+                                        invisible="state == 'authenticate'"
                                     />
                                 </div>
                                 <p class="oe_grey" colspan="2">
@@ -236,7 +242,8 @@
                                     />
                                     <field
                                         name="worklog_date_timezone"
-                                        attrs="{'invisible': [('worklog_date_timezone_mode', '!=', 'specific')], 'required': [('worklog_date_timezone_mode', '=', 'specific')]}"
+                                        invisible="worklog_date_timezone_mode != 'specific'"
+                                        required="worklog_date_timezone_mode == 'specific'"
                                         string=""
                                     />
                                 </group>
@@ -246,8 +253,12 @@
                                 </p>
                             </group>
                         </page>
-                        <page name="issue_type" string="Issue Types" states="running">
-                            <field name="issue_type_ids">
+                        <page
+                            name="issue_type"
+                            string="Issue Types"
+                            invisible="state != 'running'"
+                        >
+                            <field name="issue_type_ids" readonly="1">
                                 <tree create="0" delete="0" edit="0">
                                     <field name="name" />
                                     <field name="description" />

@@ -67,7 +67,6 @@ class JiraBackend(models.Model):
 
     uri = fields.Char(
         string="Jira URI",
-        readonly=True,
         help="the value is provided when the app is installed on Jira Cloud.",
     )
     name = fields.Char(
@@ -79,9 +78,7 @@ class JiraBackend(models.Model):
         help="URL to use when registering the backend as an app on the marketplace",
         compute="_compute_app_descriptor_url",
     )
-    display_url = fields.Char(
-        help="Url used for the Jira app in messages", readonly=True
-    )
+    display_url = fields.Char(help="Url used for the Jira app in messages")
     application_key = fields.Char(
         compute="_compute_application_key",
         store=True,
@@ -130,7 +127,6 @@ class JiraBackend(models.Model):
         ],
         default="setup",
         required=True,
-        readonly=True,
         help="State of the Backend.\n"
         "Setup: in this state you can register the backend on "
         "https://marketplace.atlassian.com/ as an app, using the app descriptor url.\n"
@@ -138,12 +134,11 @@ class JiraBackend(models.Model):
         "(transition is automatic).",
     )
     private_key = fields.Char(
-        readonly=True,
         groups="connector.group_connector_manager",
         help="The shared secret for JWT, provided at app installation",
     )
     public_key = fields.Text(
-        readonly=True, help="The Client Key for JWT, provided at app installation"
+        help="The Client Key for JWT, provided at app installation"
     )
 
     verify_ssl = fields.Boolean(default=True, string="Verify SSL?")
@@ -182,7 +177,6 @@ class JiraBackend(models.Model):
         comodel_name="jira.issue.type",
         inverse_name="backend_id",
         string="Issue Types",
-        readonly=True,
     )
 
     epic_link_field_name = fields.Char(
@@ -201,11 +195,10 @@ class JiraBackend(models.Model):
     )
 
     # TODO: use something better to show this info
-    # For instance, we could use web_notify to simply show a system msg.
-    report_user_sync = fields.Html(readonly=True)
+    #  For instance, we could use web_notify to simply show a system msg.
+    report_user_sync = fields.Html()
 
     @api.model_create_multi
-    @api.returns("self", lambda value: value.id)
     def create(self, vals_list):
         records = super().create(vals_list)
         records._compute_application_key()

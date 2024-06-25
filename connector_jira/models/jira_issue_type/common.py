@@ -11,8 +11,8 @@ class JiraIssueType(models.Model):
     _inherit = "jira.binding"
     _description = "Jira Issue Type"
 
-    name = fields.Char(required=True, readonly=True)
-    description = fields.Char(readonly=True)
+    name = fields.Char(required=True)
+    description = fields.Char()
     backend_id = fields.Many2one(ondelete="cascade")
 
     def is_sync_for_project(self, project_binding):

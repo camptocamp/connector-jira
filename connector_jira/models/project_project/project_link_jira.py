@@ -37,6 +37,7 @@ class ProjectLinkJira(models.TransientModel):
 
     @api.model
     def _default_project_id(self):
+        # TODO: remove dependency on ``active_id[s]/model``
         return self.env.context.get("active_id")
 
     @api.model

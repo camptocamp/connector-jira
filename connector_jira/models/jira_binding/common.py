@@ -26,7 +26,7 @@ class JiraBinding(models.AbstractModel):
         ondelete="restrict",
     )
     jira_updated_at = MilliDatetime()
-    external_id = fields.Char(string="ID on Jira", index=True)
+    external_id = fields.Char(string="ID on Jira", index="trigram")
 
     _sql_constraints = [
         (

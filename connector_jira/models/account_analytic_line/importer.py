@@ -288,19 +288,25 @@ class AnalyticLineImporter(Component):
     def _create_data(self, map_record, **kwargs):
         return super()._create_data(
             map_record,
-            task_binding=self.task_binding,
-            project_binding=self.project_binding,
-            fallback_project=self.fallback_project,
-            linked_issue=self.external_issue,
+            **dict(
+                kwargs or [],
+                task_binding=self.task_binding,
+                project_binding=self.project_binding,
+                fallback_project=self.fallback_project,
+                linked_issue=self.external_issue,
+            ),
         )
 
     def _update_data(self, map_record, **kwargs):
         return super()._update_data(
             map_record,
-            task_binding=self.task_binding,
-            project_binding=self.project_binding,
-            fallback_project=self.fallback_project,
-            linked_issue=self.external_issue,
+            **dict(
+                kwargs or [],
+                task_binding=self.task_binding,
+                project_binding=self.project_binding,
+                fallback_project=self.fallback_project,
+                linked_issue=self.external_issue,
+            ),
         )
 
     def run(self, external_id, force=False, record=None, **kwargs):

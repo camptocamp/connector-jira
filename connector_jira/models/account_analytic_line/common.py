@@ -58,26 +58,21 @@ class JiraAccountAnalyticLine(models.Model):
     # for instance, we do not import "Tasks" but we import "Epics",
     # the analytic line for a "Task" will be linked to an "Epic" on
     # Odoo, but we still want to know the original task here
-    jira_issue_key = fields.Char(
-        string="Original Task Key",
-        readonly=True,
-    )
+    jira_issue_key = fields.Char(string="Original Task Key")
     jira_issue_type_id = fields.Many2one(
         comodel_name="jira.issue.type",
         string="Original Issue Type",
-        readonly=True,
     )
     jira_issue_url = fields.Char(
         string="Original JIRA issue Link",
         compute="_compute_jira_issue_url",
+        store=True,
     )
-    jira_epic_issue_key = fields.Char(
-        string="Original Epic Key",
-        readonly=True,
-    )
+    jira_epic_issue_key = fields.Char(string="Original Epic Key")
     jira_epic_issue_url = fields.Char(
         string="Original JIRA Epic Link",
         compute="_compute_jira_issue_url",
+        store=True,
     )
 
     _sql_constraints = [
@@ -97,12 +92,9 @@ class JiraAccountAnalyticLine(models.Model):
     def _compute_jira_issue_url(self):
         """Compute the external URL to JIRA."""
         for record in self:
-            record.jira_issue_url = self.backend_id.make_issue_url(
-                record.jira_issue_key
-            )
-            record.jira_epic_issue_url = self.backend_id.make_issue_url(
-                record.jira_epic_issue_key
-            )
+            urlmaker = record.backend_id.make_issue_url
+            record.jira_issue_url = urlmaker(record.jira_issue_key)
+            record.jira_epic_issue_url = urlmaker(record.jira_epic_issue_key)
 
     @api.model
     def import_record(self, backend, issue_id, worklog_id, force=False):
@@ -141,6 +133,7 @@ class AccountAnalyticLine(models.Model):
         string="Original JIRA issue Link",
         compute="_compute_jira_references",
         compute_sudo=True,
+        store=True,
     )
     jira_epic_issue_key = fields.Char(
         compute="_compute_jira_references",
@@ -151,6 +144,7 @@ class AccountAnalyticLine(models.Model):
         string="Original JIRA Epic Link",
         compute="_compute_jira_references",
         compute_sudo=True,
+        store=True,
     )
 
     jira_issue_type_id = fields.Many2one(
@@ -161,27 +155,37 @@ class AccountAnalyticLine(models.Model):
     )
 
     @api.depends(
+        "jira_bind_ids",
         "jira_bind_ids.jira_issue_key",
+        "jira_bind_ids.jira_issue_url",
         "jira_bind_ids.jira_issue_type_id",
         "jira_bind_ids.jira_epic_issue_key",
+        "jira_bind_ids.jira_epic_issue_url",
     )
     def _compute_jira_references(self):
         """Compute the various references to JIRA.
 
         We assume that we have only one external record for a line
         """
-        for record in self:
-            if not record.jira_bind_ids:
-                record.jira_issue_url = False
-                record.jira_epic_issue_key = False
-                record.jira_epic_issue_url = False
-                continue
+        with_bind = self.filtered("jira_bind_ids")
+        for record in with_bind:
             main_binding = record.jira_bind_ids[0]
             record.jira_issue_key = main_binding.jira_issue_key
             record.jira_issue_url = main_binding.jira_issue_url
             record.jira_issue_type_id = main_binding.jira_issue_type_id
             record.jira_epic_issue_key = main_binding.jira_epic_issue_key
             record.jira_epic_issue_url = main_binding.jira_epic_issue_url
+        no_bind = self - with_bind
+        if no_bind:
+            no_bind.update(
+                {
+                    "jira_issue_key": "",
+                    "jira_issue_url": "",
+                    "jira_issue_type_id": False,
+                    "jira_epic_issue_key": "",
+                    "jira_epic_issue_url": "",
+                }
+            )
 
     @api.model
     def _get_connector_jira_fields(self):
@@ -241,10 +245,11 @@ class AccountAnalyticLine(models.Model):
                 _("Timesheet linked to JIRA Worklog can not be deleted!")
             )
 
-    @api.model
-    def create(self, vals):
-        self._connector_jira_create_validate(vals)
-        return super().create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            self._connector_jira_create_validate(vals)
+        return super().create(vals_list)
 
     def write(self, vals):
         self._connector_jira_write_validate(vals)

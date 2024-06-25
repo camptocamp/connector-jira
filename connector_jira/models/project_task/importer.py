@@ -181,7 +181,7 @@ class ProjectTaskImporter(Component):
         self.project_binding = None
 
     def _get_external_data(self):
-        """Return the raw Jira data for ``self.external_id``"""
+        # OVERRIDE: return the raw Jira data for ``self.external_id``
         result = super()._get_external_data()
         epic_field_name = self.backend_record.epic_link_field_name
         if epic_field_name:
@@ -209,17 +209,21 @@ class ProjectTaskImporter(Component):
     def _create_data(self, map_record, **kwargs):
         return super()._create_data(
             map_record,
-            jira_epic=self.jira_epic,
-            project_binding=self.project_binding,
-            **kwargs,
+            **dict(
+                kwargs or [],
+                jira_epic=self.jira_epic,
+                project_binding=self.project_binding,
+            ),
         )
 
     def _update_data(self, map_record, **kwargs):
         return super()._update_data(
             map_record,
-            jira_epic=self.jira_epic,
-            project_binding=self.project_binding,
-            **kwargs,
+            **dict(
+                kwargs or [],
+                jira_epic=self.jira_epic,
+                project_binding=self.project_binding,
+            ),
         )
 
     def _import(self, binding, **kwargs):
