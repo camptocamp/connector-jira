@@ -35,20 +35,30 @@
     },
     "website": "https://github.com/OCA/connector-jira",
     "data": [
-        "views/jira_menus.xml",
-        "views/project_link_jira_views.xml",
-        "views/task_link_jira_views.xml",
-        "views/jira_backend_views.xml",
-        "views/jira_backend_report_templates.xml",
-        "views/project_project_views.xml",
-        "views/project_task_views.xml",
-        "views/res_users_views.xml",
-        "views/jira_issue_type_views.xml",
-        "views/timesheet_account_analytic_line.xml",
-        "wizards/jira_account_analytic_line_import_views.xml",
+        # SECURITY
         "security/ir.model.access.csv",
+        # DATA
         "data/cron.xml",
-        "data/queue_job_data.xml",
+        "data/queue_job_channel.xml",
+        "data/queue_job_function.xml",
+        # VIEWS
+        # This file contains the root menu, import it first
+        "views/jira_menus.xml",
+        # Views, actions, menus
+        "views/account_analytic_line.xml",
+        "views/jira_backend.xml",
+        "views/jira_backend_report_templates.xml",
+        "views/jira_issue_type.xml",
+        "views/jira_project_project.xml",
+        "views/jira_project_task.xml",
+        "views/jira_res_users.xml",
+        "views/project_project.xml",
+        "views/project_task.xml",
+        "views/res_users.xml",
+        # Wizard views
+        "wizards/jira_account_analytic_line_import.xml",
+        "wizards/project_link_jira.xml",
+        "wizards/task_link_jira.xml",
     ],
     "demo": ["demo/jira_backend_demo.xml"],
     "installable": True,
