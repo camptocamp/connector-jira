@@ -13,15 +13,11 @@ In addition to its export job, an exporter has to:
 
 """
 
-import logging
-
 from odoo import _, fields, tools
 
 from odoo.addons.component.core import AbstractComponent
 
 from .common import iso8601_to_utc_datetime
-
-_logger = logging.getLogger(__name__)
 
 
 class JiraBaseExporter(AbstractComponent):
@@ -42,9 +38,9 @@ class JiraBaseExporter(AbstractComponent):
         Adapt in the sub-classes when the model is not imported
         using ``import_record``.
         """
+        assert self.external_id
         # force is True because the sync_date will be more recent
         # so the import would be skipped if it was not forced
-        assert self.external_id
         self.binding.import_record(self.backend_record, self.external_id, force=True)
 
     def _should_import(self):
@@ -53,18 +49,15 @@ class JiraBaseExporter(AbstractComponent):
         if the former is more recent, schedule an import
         to not miss changes done in Jira.
         """
-        assert self.binding
         if not self.external_id:
             return False
+        assert self.binding
         sync = self.binder.sync_date(self.binding)
         if not sync:
             return True
         vals = self.backend_adapter.read(self.external_id, fields=["updated"])
         jira_updated = vals["fields"]["updated"]
-
-        sync_date = fields.Datetime.from_string(sync)
-        jira_date = iso8601_to_utc_datetime(jira_updated)
-        return sync_date < jira_date
+        return fields.Datetime.to_datetime(sync) < iso8601_to_utc_datetime(jira_updated)
 
     def _lock(self):
         """Lock the binding record.
@@ -89,7 +82,6 @@ class JiraBaseExporter(AbstractComponent):
         :param binding: binding record to export
         """
         self.binding = binding
-
         if not self.binding.exists():
             return _("Record to export does no longer exist.")
 

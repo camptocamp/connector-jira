@@ -7,15 +7,13 @@ from odoo import models
 class QueueJob(models.Model):
     _inherit = "queue.job"
 
-    def related_action_jira_link(self):
+    def related_action_jira_link(self) -> dict:
         """Open a jira url for an issue"""
         self.ensure_one()
 
-        model_name = self.model_name
         # only tested on issues so far
-        issue_models = ("jira.project.task", "jira.account.analytic.line")
-        if model_name not in issue_models:
-            return
+        if self.model_name not in ("jira.project.task", "jira.account.analytic.line"):
+            return {}
 
         backend = self.args[0]
         jira_id = self.args[1]
@@ -29,10 +27,8 @@ class QueueJob(models.Model):
             adapter = work.component(usage="backend.adapter")
             with adapter.handle_user_api_errors():
                 jira_record = adapter.get(jira_id)
-        jira_key = jira_record.key
-
         return {
             "type": "ir.actions.act_url",
             "target": "new",
-            "url": backend.make_issue_url(jira_key),
+            "url": backend.make_issue_url(jira_record.key),
         }

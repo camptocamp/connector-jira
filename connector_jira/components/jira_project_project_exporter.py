@@ -42,9 +42,8 @@ class JiraProjectProjectExporter(Component):
             self._update_project(adapter, {"name": name, "key": key})
         else:
             if template == "shared":
-                shared_key = self.binding.project_template_shared
                 self.external_id = self._create_shared_project(
-                    adapter, key, name, shared_key, None
+                    adapter, key, name, self.binding.project_template_shared, lead=None
                 )
             else:
                 self.external_id = self._create_project(

@@ -27,9 +27,8 @@ def iso8601_to_utc_datetime(isodate):
     parsed = parser.parse(isodate)
     if not parsed.tzinfo:
         return parsed
-    utc = pytz.timezone("UTC")
     # set as UTC and then remove the tzinfo so the date becomes naive
-    return parsed.astimezone(utc).replace(tzinfo=None)
+    return parsed.astimezone(pytz.UTC).replace(tzinfo=None)
 
 
 def utc_datetime_to_iso8601(dt):
@@ -38,8 +37,7 @@ def utc_datetime_to_iso8601(dt):
     Example: 2013-11-04 12:52:01 → 2013-11-04T12:52:01+0000
 
     """
-    utc = pytz.timezone("UTC")
-    utc_dt = utc.localize(dt, is_dst=False)  # UTC = no DST
+    utc_dt = pytz.UTC.localize(dt, is_dst=False)  # UTC = no DST
     return utc_dt.isoformat()
 
 
@@ -79,8 +77,7 @@ def iso8601_to_naive_date(isodate):
     Example with 2014-10-07T00:34:59+0200: we want 2014-10-07 and not
     2014-10-06 that we would have using the timestamp converted to UTC.
     """
-    naive_date = isodate[:10]
-    return datetime.strptime(naive_date, "%Y-%m-%d").date()
+    return datetime.strptime(isodate[:10], "%Y-%m-%d").date()
 
 
 def iso8601_naive_date(field):

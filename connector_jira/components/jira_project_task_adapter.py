@@ -21,6 +21,5 @@ class JiraProjectTaskAdapter(Component):
     def search(self, jql):
         # we need to have at least one field which is not 'id' or 'key'
         # due to this bug: https://github.com/pycontribs/jira/pull/289
-        fields = "id,updated"
-        issues = self.client.search_issues(jql, fields=fields, maxResults=None)
+        issues = self.client.search_issues(jql, fields="id,updated", maxResults=None)
         return [issue.id for issue in issues]

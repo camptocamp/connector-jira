@@ -25,14 +25,11 @@ class JiraResUsersAdapter(Component):
         users = self.client.search_users(
             query=fragment, maxResults=None, includeActive=True, includeInactive=True
         )
-
-        # User 'accountId' is unique and if same key appears several times, it means
-        # that same user is present in multiple User Directories
-        users = list(
+        # User 'accountId' is unique, and if the same key appears several times,
+        # it means that the same user is found in multiple User Directories
+        return list(
             map(
                 lambda group: list(group[1])[0],
                 groupby(users, key=lambda user: user.accountId),
             )
         )
-
-        return users

@@ -9,7 +9,7 @@ from . import jira_account_analytic_line
 from . import jira_backend
 from . import jira_backend_timestamp
 from . import jira_issue_type
-from . import jira_project_base_fields
+from . import jira_project_base_mixin
 from . import jira_project_project
 from . import jira_project_task
 from . import jira_res_users

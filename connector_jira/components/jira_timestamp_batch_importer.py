@@ -49,14 +49,11 @@ class JiraTimestampBatchImporter(AbstractComponent):
             self._handle_lock_failed(timestamp)
 
         next_timestamp_value, records = self._search(timestamp)
-
         timestamp._update_timestamp(next_timestamp_value)
-
         number = self._handle_records(records, force=force)
-
         return _(
-            f"Batch from {original_timestamp_value} UTC to {next_timestamp_value} "
-            f"UTC generated {number} imports"
+            f"Batch from {original_timestamp_value} UTC to {next_timestamp_value} UTC "
+            f"generated {number} imports"
         )
 
     def _handle_records(self, records, force=False):
@@ -67,26 +64,20 @@ class JiraTimestampBatchImporter(AbstractComponent):
 
     def _handle_lock_failed(self, timestamp):
         _logger.warning("Failed to acquire timestamps %s", timestamp, exc_info=True)
-        raise RetryableJobError(
-            "Concurrent job / process already syncing",
-            ignore_retry=True,
-        )
+        raise RetryableJobError("Concurrent job / process already syncing", ignore_retry=True)
 
     def _search(self, timestamp):
         """Return a tuple (next timestamp value, jira record ids)"""
-        until = datetime.now()
-
-        parts = []
-        if timestamp.last_timestamp:
-            since = timestamp.last_timestamp
-            from_date = since.strftime(JIRA_JQL_DATETIME_FORMAT)
-            parts.append('updated >= "%s"' % from_date)
-            to_date = until.strftime(JIRA_JQL_DATETIME_FORMAT)
-            parts.append('updated <= "%s"' % to_date)
-
-        next_timestamp = max(until - timedelta(seconds=IMPORT_DELTA), since)
-        record_ids = self.backend_adapter.search(" and ".join(parts))
-        return (next_timestamp, record_ids)
+        since, until = timestamp.last_timestamp, datetime.now()
+        return (
+            max(until - timedelta(seconds=IMPORT_DELTA), since),
+            self.backend_adapter.search(
+                'updated >= "%s" and updated <= "%s"' % (
+                    since.strftime(JIRA_JQL_DATETIME_FORMAT),
+                    until.strftime(JIRA_JQL_DATETIME_FORMAT),
+                ),
+            ),
+        )
 
     def _import_record(self, record_id, force=False, record=None, **kwargs):
         """Delay the import of the records"""

@@ -15,5 +15,4 @@ class JiraIssueTypeAdapter(Component):
             return self.client.issue_type(id_).raw
 
     def search(self):
-        issues = self.client.issue_types()
-        return [issue.id for issue in issues]
+        return [issue.id for issue in self.client.issue_types()]

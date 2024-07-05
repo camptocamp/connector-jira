@@ -1,13 +1,9 @@
 # Copyright 2016-2019 Camptocamp SA
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
 
-import logging
-
 from odoo import models
 
 from odoo.addons.component.core import Component
-
-_logger = logging.getLogger(__name__)
 
 
 class JiraProjectBinder(Component):
@@ -43,11 +39,8 @@ class JiraProjectBinder(Component):
         else:
             binding = self.model.browse(binding)
         if wrap:
-            binding = self.model.with_context(active_test=False).search(
-                self._domain_to_external(binding)
-            )
+            domain = self._domain_to_external(binding)
+            binding = self.model.with_context(active_test=False).search(domain, limit=1)
             if not binding:
-                return None
-            binding.ensure_one()
-            return binding[self._external_field]
+                return
         return binding[self._external_field]

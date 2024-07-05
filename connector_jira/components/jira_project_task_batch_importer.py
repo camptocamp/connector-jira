@@ -8,8 +8,8 @@ from odoo.addons.component.core import Component
 class JiraProjectTaskBatchImporter(Component):
     """Import the Jira tasks
 
-    For every id in in the list of tasks, a delayed job is created.
-    Import from a date
+    For every id in the list of tasks, a delayed job is created.
+    Import from a given date.
     """
 
     _name = "jira.project.task.batch.importer"

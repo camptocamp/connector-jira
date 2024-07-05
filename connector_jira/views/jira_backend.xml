@@ -70,193 +70,146 @@
                         >
                             <p class="oe_grey oe_inline">
                                 By clicking on the buttons,
-                you will initiate the synchronizations
-                with Jira.
-                Note that the import or exports
-                won't be done directly,
-                they will create 'Jobs'
-                executed as soon as possible.
+                                you will initiate the synchronizations
+                                with Jira.
+                                Note that the import or exports
+                                won't be done directly,
+                                they will create 'Jobs'
+                                executed as soon as possible.
                             </p>
                             <p class="oe_grey oe_inline">
                                 Once imported,
-                some types of records,
-                like the products or categories,
-                need a manual review.
-                You will find the list
-                of the new records to review
-                in the menu 'Connectors > Checkpoint'.
+                                some types of records,
+                                like the products or categories,
+                                need a manual review.
+                                You will find the list
+                                of the new records to review
+                                in the menu 'Connectors > Checkpoint'.
                             </p>
-                            <group>
-                                <div>
-                                    <label
-                                        for="import_res_users"
-                                        string="Link users"
-                                        class="oe_inline"
+                            <group name="import_res_users_group" string="Link Users">
+                                <group name="import_res_users_group_button">
+                                    <button
+                                        name="import_res_users"
+                                        type="object"
+                                        class="oe_highlight"
+                                        string="Run"
                                     />
-                                </div>
-                                <button
-                                    name="import_res_users"
-                                    type="object"
-                                    class="oe_highlight"
-                                    string="Run"
-                                />
-                                <div
-                                    class="alert alert-danger"
-                                    role="alert"
-                                    invisible="not report_user_sync"
-                                >
-                                    <field name="report_user_sync" readonly="1" />
-                                </div>
+                                </group>
+                                <group name="import_res_users_group_result">
+                                    <label for="report_user_sync" string="Result" invisible="not report_user_sync"/>
+                                    <div
+                                        class="alert alert-danger"
+                                        role="alert"
+                                        invisible="not report_user_sync"
+                                        colspan="2"
+                                    >
+                                        <field name="report_user_sync" readonly="1" />
+                                    </div>
+                                </group>
                             </group>
-                            <group>
-                                <div>
-                                    <label
-                                        for="import_issue_type"
-                                        string="Import Issue Types"
-                                        class="oe_inline"
+                            <group name="import_issue_type" string="Import Issue Types">
+                                <group name="import_issue_type_button">
+                                    <button
+                                        name="import_res_users"
+                                        type="object"
+                                        class="oe_highlight"
+                                        string="Run"
                                     />
-                                </div>
-                                <button
-                                    name="import_issue_type"
-                                    type="object"
-                                    class="oe_highlight"
-                                    string="Run"
-                                />
+                                </group>
                             </group>
-                            <group>
-                                <div>
-                                    <label
-                                        for="import_project_task_from_date"
-                                        string="Import project tasks since"
-                                        class="oe_inline"
-                                    />
-                                    <field
-                                        name="import_project_task_from_date"
-                                        class="oe_inline"
-                                        nolabel="1"
-                                    />
-                                    <span groups="base.group_no_one">
-                                        <span class="o_form_label">(</span>
-                                        <field
-                                            name="import_project_task_force"
-                                            class="oe_inline"
-                                            nolabel="1"
-                                        />
-                                        <label
-                                            for="import_project_task_force"
-                                            class="oe_inline"
-                                            string="forced"
-                                        />
-                                        <span class="o_form_label">)</span>
-                                    </span>
+                            <group name="import_project_task" string="Import Project Tasks">
+                                <div colspan="2">
+                                    <label for="import_project_task_from_date" class="oe_inline" string="Since:&#160;"/>
+                                    <field name="import_project_task_from_date" class="oe_inline" nolabel="1"/>
                                 </div>
-                                <button
-                                    name="import_project_task"
-                                    type="object"
-                                    class="oe_highlight"
-                                    string="Run in background"
-                                />
+                                <div colspan="2" groups="base.group_no_one">
+                                    <label for="import_project_task_force" class="oe_inline" string="Forced:&#160;"/>
+                                    <field name="import_project_task_force" class="oe_inline" nolabel="1"/>
+                                </div>
+                                <group name="import_project_task_button">
+                                    <button
+                                        name="import_project_task"
+                                        type="object"
+                                        class="oe_highlight"
+                                        string="Run in background"
+                                    />
+                                </group>
                             </group>
-                            <group>
-                                <div>
-                                    <label
-                                        for="import_analytic_line_from_date"
-                                        string="Import worklogs since"
-                                        class="oe_inline"
-                                    />
-                                    <field
-                                        name="import_analytic_line_from_date"
-                                        class="oe_inline"
-                                        nolabel="1"
-                                    />
-                                    <span groups="base.group_no_one">
-                                        <span class="o_form_label">(</span>
-                                        <field
-                                            name="import_analytic_line_force"
-                                            class="oe_inline"
-                                            nolabel="1"
-                                        />
-                                        <label
-                                            for="import_analytic_line_force"
-                                            class="oe_inline"
-                                            string="forced"
-                                        />
-                                        <span class="o_form_label">)</span>
-                                    </span>
+                            <group name="import_analytic_line" string="Import Worklogs">
+                                <div colspan="2">
+                                    <label for="import_analytic_line_from_date" class="oe_inline" string="Since:&#160;"/>
+                                    <field name="import_analytic_line_from_date" class="oe_inline" nolabel="1"/>
                                 </div>
-                                <button
-                                    name="import_analytic_line"
-                                    type="object"
-                                    class="oe_highlight"
-                                    string="Run in background"
-                                />
+                                <div colspan="2" groups="base.group_no_one">
+                                    <label for="import_analytic_line_force" class="oe_inline" string="Forced:&#160;"/>
+                                    <field name="import_analytic_line_force" class="oe_inline" nolabel="1"/>
+                                </div>
+                                <group name="import_analytic_line_button">
+                                    <button
+                                        name="import_analytic_line"
+                                        type="object"
+                                        class="oe_highlight"
+                                        string="Run in background"
+                                    />
+                                </group>
                             </group>
-                            <group>
-                                <div>
-                                    <label
-                                        for="delete_analytic_line_from_date"
-                                        string="Import deleted worklogs since"
-                                        class="oe_inline"
-                                    />
-                                    <field
-                                        name="delete_analytic_line_from_date"
-                                        class="oe_inline"
-                                        nolabel="1"
-                                    />
+                            <group name="delete_analytic_line" string="Delete Worklogs">
+                                <div colspan="2">
+                                    <label for="delete_analytic_line_from_date" class="oe_inline" string="Since:&#160;"/>
+                                    <field name="delete_analytic_line_from_date" class="oe_inline" nolabel="1"/>
                                 </div>
-                                <button
-                                    name="delete_analytic_line"
-                                    type="object"
-                                    class="oe_highlight"
-                                    string="Run in background"
-                                />
+                                <group name="delete_analytic_line_button">
+                                    <button
+                                        name="delete_analytic_line"
+                                        type="object"
+                                        class="oe_highlight"
+                                        string="Run in background"
+                                    />
+                                </group>
                             </group>
                         </page>
                         <page
                             name="advanced_configuration"
                             string="Advanced Configuration"
                         >
-                            <group name="epic" col="6">
-                                <group name="epic_fields" colspan="3">
+                            <group name="epic">
+                                <group name="epic_fields">
                                     <field name="epic_link_field_name" />
                                     <field name="epic_name_field_name" />
                                     <field name="epic_link_on_epic" />
                                 </group>
-                                <div>
-                                    <button
-                                        name="activate_epic_link"
-                                        type="object"
-                                        string="Configure Epic Link"
-                                        class="btn-sm btn-link oe_inline"
-                                        invisible="state == 'authenticate'"
-                                    />
-                                </div>
-                                <p class="oe_grey" colspan="2">
-                                    Activate the synchronization of the Epic Link field.
-                  Only on JIRA Software. The field contains the name of
-                  the JIRA custom field that contains the Epic Link.
-
-                  Note that if a project does not synchronize the Epics,
-                  the field will be empty.
-                                </p>
+                                <group name="epic_description">
+                                    <div>
+                                        <button
+                                            name="activate_epic_link"
+                                            type="object"
+                                            string="Configure Epic Link"
+                                            class="btn-sm btn-link oe_inline"
+                                            invisible="state == 'authenticate'"
+                                        />
+                                    </div>
+                                    <p class="oe_grey" colspan="2">
+                                        Activate the synchronization of the Epic Link field.
+                                        Only on JIRA Software. The field contains the name of
+                                        the JIRA custom field that contains the Epic Link.
+                                        Note that if a project does not synchronize the Epics,
+                                        the field will be empty.
+                                    </p>
+                                </group>
                             </group>
-                            <group name="worklog" col="6">
-                                <group name="worklog_fields" colspan="3">
-                                    <field
-                                        name="worklog_date_timezone_mode"
-                                        string="Worklog date timezone"
-                                    />
+                            <group name="worklog">
+                                <group name="worklog_fields">
+                                    <field name="worklog_date_timezone_mode" string="Timezone Mode"/>
                                     <field
                                         name="worklog_date_timezone"
+                                        string="Timezone"
                                         invisible="worklog_date_timezone_mode != 'specific'"
                                         required="worklog_date_timezone_mode == 'specific'"
-                                        string=""
                                     />
                                 </group>
-                                <div />
-                                <p class="oe_grey" colspan="2">
-                                    Configure worklog fields
-                                </p>
+                                <group name="worklog_description">
+                                    <p class="oe_grey" colspan="2">Configure worklog fields</p>
+                                </group>
                             </group>
                         </page>
                         <page

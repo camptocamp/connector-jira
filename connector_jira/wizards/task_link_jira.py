@@ -40,10 +40,7 @@ class TaskLinkJira(models.TransientModel):
 
     @api.model
     def _selection_state(self):
-        return [
-            ("start", "Start"),
-            ("final", "Final"),
-        ]
+        return [("start", "Start"), ("final", "Final")]
 
     def state_exit_start(self):
         if not self.jira_task_id:

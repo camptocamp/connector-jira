@@ -21,18 +21,14 @@ class JiraBackendTimestamp(models.Model):
         string="Jira Backend",
         required=True,
     )
-    from_date_field = fields.Char(
-        required=True,
-    )
+    from_date_field = fields.Char(required=True)
+
     # For worklogs, jira allows to work with milliseconds
     # unix timestamps, we keep this precision by using a new type
     # of field. The ORM values for this field are Unix timestamps the
     # same way Jira use them: unix timestamp as integer multiplied * 1000
     # to keep the milli precision with 3 digits (example 1554318348000).
-    last_timestamp = MilliDatetime(
-        string="Last Timestamp",
-        required=True,
-    )
+    last_timestamp = MilliDatetime(string="Last Timestamp", required=True)
 
     # The content of this field must match to the "usage" of a component.
     # The method JiraBinding.run_batch_timestamp() will find the matching
@@ -85,14 +81,9 @@ class JiraBackendTimestamp(models.Model):
         Return True if the lock could be acquired.
         """
         self.ensure_one()
-        query = """
-               SELECT id FROM jira_backend_timestamp
-               WHERE id = %s
-               FOR UPDATE NOWAIT
-            """
+        query = "SELECT id FROM jira_backend_timestamp WHERE id = %s FOR UPDATE NOWAIT"
         try:
             self.env.cr.execute(query, (self.id,))
         except psycopg2.OperationalError:
             return False
-        row = self.env.cr.fetchone()
-        return bool(row)
+        return bool(self.env.cr.fetchone())

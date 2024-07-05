@@ -19,6 +19,7 @@ TODO: we now have authenticated calls from Jira through the JWT tokens, so we
 """
 
 import logging
+import pprint
 
 import odoo
 from odoo import _, http
@@ -38,12 +39,10 @@ class JiraWebhookController(http.Controller):
     )
     def webhook_issue(self, backend_id, issue_id=None, **kw):
         ensure_db()
-        import pprint
-
-        pprint.pprint(request.get_json_data())
+        data = request.get_json_data()
+        pprint.pprint(data)
         request.update_env(user=odoo.SUPERUSER_ID)
-        env = request.env
-        backend = env["jira.backend"].search(
+        backend = request.env["jira.backend"].search(
             [("id", "=", backend_id), ("state", "=", "running")]
         )
         if not backend:
@@ -57,16 +56,15 @@ class JiraWebhookController(http.Controller):
             request.httprequest.headers["Authorization"],
             f"{request.httprequest.path}?{request.httprequest.query_string}",
         )
-        action = request.get_json_data()["webhookEvent"]
-
-        payload = request.get_json_data()["issue"]
-        issue_id = payload["id"]
-
-        delayable_model = env["jira.project.task"].with_delay()
-        if action == "jira:issue_deleted":
-            delayable_model.delete_record(backend, issue_id)
+        model = request.env["jira.project.task"]
+        args = (backend, data["issue"]["id"])
+        if data["webhookEvent"] == "jira:issue_deleted":
+            delay_msg = _("Delete a local issue which has been deleted on JIRA")
+            method = "delete_record"
         else:
-            delayable_model.import_record(backend, issue_id)
+            delay_msg = _("Import a issue from JIRA")
+            method = "import_record"
+        getattr(model.with_delay(description=delay_msg), method)(*args)
 
     @http.route(
         "/connector_jira/<int:backend_id>/webhooks/worklog",
@@ -76,9 +74,10 @@ class JiraWebhookController(http.Controller):
     )
     def webhook_worklog(self, backend_id, **kw):
         ensure_db()
+        data = request.get_json_data()
+        pprint.pprint(data)
         request.update_env(user=odoo.SUPERUSER_ID)
-        env = request.env
-        backend = env["jira.backend"].search(
+        backend = request.env["jira.backend"].search(
             [("id", "=", backend_id), ("state", "=", "running")]
         )
         if not backend:
@@ -92,18 +91,13 @@ class JiraWebhookController(http.Controller):
             request.httprequest.headers["Authorization"],
             f"{request.httprequest.path}?{request.httprequest.query_string}",
         )
-        action = request.get_json_data()["webhookEvent"]
-
-        payload = request.get_json_data()["worklog"]
-
-        issue_id = payload["issueId"]
-        worklog_id = payload["id"]
-
-        if action == "worklog_deleted":
-            env["jira.account.analytic.line"].with_delay(
-                description=_("Delete a local worklog which has been deleted on JIRA")
-            ).delete_record(backend, worklog_id)
+        model = request.env["jira.account.analytic.line"]
+        if data["webhookEvent"] == "worklog_deleted":
+            delay_msg = _("Delete a local worklog which has been deleted on JIRA")
+            method = "delete_record"
+            args = (backend, data["worklog"]["id"])
         else:
-            env["jira.account.analytic.line"].with_delay(
-                description=_("Import a worklog from JIRA")
-            ).import_record(backend, issue_id, worklog_id)
+            delay_msg = _("Import a worklog from JIRA")
+            method = "import_record"
+            args = (backend, data["worklog"]["issueId"], data["worklog"]["id"])
+        getattr(model.with_delay(description=delay_msg), method)(*args)

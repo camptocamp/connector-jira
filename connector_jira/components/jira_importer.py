@@ -62,8 +62,7 @@ class JiraImporter(Component):
         assert self.external_record
 
     def _before_import(self):
-        """Hook called before the import, when we have the Jira
-        data"""
+        """Hook called before the import, when we have the Jira data"""
 
     def _get_external_updated_at(self):
         assert self.external_record
@@ -74,20 +73,16 @@ class JiraImporter(Component):
         return iso8601_to_utc_datetime(external_updated_at)
 
     def _is_uptodate(self, binding):
-        """Return True if the import should be skipped because
-        it is already up-to-date in Odoo"""
+        """Return True if the binding is already up-to-date in Odoo"""
         external_date = self._get_external_updated_at()
-        if not external_date:
-            return False  # no update date on Jira, always import it.
-        if not binding:
-            return  # it does not exist so it should not be skipped
         # We store the jira "updated_at" field in the binding,
         # so for further imports, we can check accurately if the
         # record is already up-to-date (this field has a millisecond
         # precision).
-        if binding.jira_updated_at:
-            return external_date < binding.jira_updated_at
-        return False
+        internal_date = bool(binding) and binding.jira_updated_at
+        # No update date on Jira, no binding or no last update on the binding => the
+        # record does not exist or is not up-to-date, so it should be imported
+        return external_date and internal_date and external_date < internal_date
 
     def _import_dependency(
         self, external_id, binding_model, component=None, record=None, always=False
@@ -113,15 +108,14 @@ class JiraImporter(Component):
                        it is still skipped if it has not been modified on Jira
         :type always: boolean
         """
-        if not external_id:
-            return
-        binder = self.binder_for(binding_model)
-        if always or not binder.to_internal(external_id):
-            if component is None:
-                component = self.component(
-                    usage="record.importer", model_name=binding_model
-                )
-            component.run(external_id, record=record, force=True)
+        if external_id:
+            binder = self.binder_for(binding_model)
+            if always or not binder.to_internal(external_id):
+                if component is None:
+                    component = self.component(
+                        usage="record.importer", model_name=binding_model
+                    )
+                component.run(external_id, record=record, force=True)
 
     def _import_dependencies(self):
         """Import the dependencies for the record"""
@@ -148,15 +142,9 @@ class JiraImporter(Component):
         """Filter values that aren't actually changing"""
         binding.ensure_one()
         fields = list(data.keys())
-        new_values = binding._convert_to_write(
-            data,
-        )
-        old_values = binding._convert_to_write(
-            binding.read(
-                fields,
-                load="_classic_write",
-            )[0],
-        )
+        new_values = binding._convert_to_write(data)
+        old_binding_values = binding.read(fields, load="_classic_write")[0]
+        old_values = binding._convert_to_write(old_binding_values)
         new_data = {}
         for field in fields:
             if new_values[field] == old_values[field]:

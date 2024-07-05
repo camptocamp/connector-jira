@@ -7,7 +7,7 @@ from odoo.addons.component_event import skip_if
 
 class JiraProjectProjectListener(Component):
     _name = "jira.project.project.listener"
-    _inherit = ["base.connector.listener"]
+    _inherit = ["base.connector.listener", "jira.base"]
     _apply_on = ["jira.project.project"]
 
     @skip_if(lambda self, record, **kwargs: self.no_connector_export(record))

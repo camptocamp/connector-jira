@@ -1,13 +1,9 @@
 # Copyright 2016-2019 Camptocamp SA
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
 
-import logging
-
 from odoo import fields
 
 from odoo.addons.component.core import Component
-
-_logger = logging.getLogger(__name__)
 
 
 class JiraBinder(Component):
@@ -27,4 +23,4 @@ class JiraBinder(Component):
 
     def sync_date(self, binding):
         assert self._sync_date_field
-        return fields.Datetime.from_string(binding[self._sync_date_field])
+        return fields.Datetime.to_datetime(binding[self._sync_date_field])

@@ -17,6 +17,5 @@ class JiraIssueTypeBatchImporter(Component):
 
     def run(self):
         """Run the synchronization"""
-        record_ids = self.backend_adapter.search()
-        for record_id in record_ids:
+        for record_id in self.backend_adapter.search():
             self._import_record(record_id)

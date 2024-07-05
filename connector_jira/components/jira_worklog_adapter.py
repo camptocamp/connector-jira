@@ -2,28 +2,27 @@
 # Copyright 2019 Brainbean Apps (https://brainbeanapps.com)
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
 
-import json
 from collections import namedtuple
 
 from odoo.addons.component.core import Component
 
 UpdatedWorklog = namedtuple(
     "UpdatedWorklog",
-    "worklog_id updated",
     # id as integer, timestamp
+    "worklog_id updated",
 )
 
 UpdatedWorklogSince = namedtuple(
     "UpdatedWorklogSince",
+    # timestamp, timestamp, list[UpdatedWorklog]
     "since until updated_worklogs",
-    # timestamp, timestamp, [UpdatedWorklog]
 )
 
 
 DeletedWorklogSince = namedtuple(
     "DeletedWorklogSince",
+    # timestamp, timestamp, list[ids as integer]
     "since until deleted_worklog_ids",
-    # timestamp, timestamp, [ids as integer]
 )
 
 
@@ -39,8 +38,7 @@ class WorklogAdapter(Component):
 
     def search(self, issue_id):
         """Search worklogs of an issue"""
-        worklogs = self.client.worklogs(issue_id)
-        return [worklog.id for worklog in worklogs]
+        return [worklog.id for worklog in self.client.worklogs(issue_id)]
 
     @staticmethod
     def _chunks(whole, size):
@@ -50,45 +48,33 @@ class WorklogAdapter(Component):
 
     def yield_read(self, worklog_ids):
         """Generator returning worklog ids data"""
-        path = "worklog/list"
-
         # the method returns max 1000 results
         for chunk in self._chunks(worklog_ids, 1000):
-            payload = json.dumps({"ids": chunk})
-            result = self._post_get_json(path, data=payload)
-            yield from result
+            yield from self._post_get_json("worklog/list", params={"ids": chunk})
 
     def updated_since(self, since=None):
-        path = "worklog/updated"
-
-        start_since = since
+        original_since = since
         updated_worklogs = []
-
-        while True:
-            result = self.client._get_json(path, params={"since": since})
+        result = {"lastPage": False}
+        while not result["lastPage"]:
+            result = self.client._get_json("worklog/updated", params={"since": since})
             updated_worklogs += [
                 UpdatedWorklog(worklog_id=row["worklogId"], updated=row["updatedTime"])
                 for row in result["values"]
             ]
             until = since = result["until"]
-            if result["lastPage"]:
-                break
         return UpdatedWorklogSince(
-            since=start_since, until=until, updated_worklogs=updated_worklogs
+            since=original_since, until=until, updated_worklogs=updated_worklogs
         )
 
     def deleted_since(self, since=None):
-        path = "worklog/deleted"
-
-        start_since = since
+        original_since = since
         deleted_worklog_ids = []
-
-        while True:
-            result = self.client._get_json(path, params={"since": since})
+        result = {"lastPage": False}
+        while not result["lastPage"]:
+            result = self.client._get_json("worklog/deleted", params={"since": since})
             deleted_worklog_ids += [row["worklogId"] for row in result["values"]]
             until = since = result["until"]
-            if result["lastPage"]:
-                break
         return DeletedWorklogSince(
-            since=start_since, until=until, deleted_worklog_ids=deleted_worklog_ids
+            since=original_since, until=until, deleted_worklog_ids=deleted_worklog_ids
         )

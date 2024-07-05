@@ -34,14 +34,11 @@ class JiraAnalyticLineTimestampBatchDeleter(Component):
             self._handle_lock_failed(timestamp)
 
         next_timestamp_value, records = self._search(timestamp)
-
         timestamp._update_timestamp(next_timestamp_value)
-
-        self._handle_records(records)
-
+        number = self._handle_records(records)
         return _(
             f"Batch from {original_timestamp_value} UTC to {next_timestamp_value} UTC "
-            "generated {number} delete jobs"
+            f"generated {number} delete jobs"
         )
 
     def _handle_records(self, records):
@@ -60,12 +57,11 @@ class JiraAnalyticLineTimestampBatchDeleter(Component):
     def _search(self, timestamp):
         unix_timestamp = MilliDatetime.to_timestamp(timestamp.last_timestamp)
         result = self.backend_adapter.deleted_since(since=unix_timestamp)
-        worklog_ids = result.deleted_worklog_ids
-        next_timestamp = MilliDatetime.from_timestamp(result.until)
-        return (next_timestamp, worklog_ids)
+        return MilliDatetime.from_timestamp(result.until), result.deleted_worklog_ids
 
     def _delete_record(self, record_id, **kwargs):
         """Delay the delete of the records"""
+        kwargs.pop("description", None)
         self.model.with_delay(
             description=_("Delete a local worklog which has " "been deleted on JIRA"),
             **kwargs,

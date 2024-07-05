@@ -67,24 +67,17 @@ class JiraProjectAdapter(Component):
             else:
                 raise
 
-        url = (
-            self.client._options["server"]
-            + "/rest/project-templates/1.0/createshared/%s" % project_id
-        )
-        payload = {
-            "name": name,
-            "key": key,
-            "lead": lead,
-        }
+        server_url = self.client._options["server"]
+        url = server_url + "/rest/project-templates/1.0/createshared/%s" % project_id
+        payload = {"name": name, "key": key, "lead": lead,}
 
         r = self.client._session.post(url, data=json.dumps(payload))
         if r.status_code == 200:
-            r_json = json_loads(r)
-            return r_json
+            return json_loads(r)
 
         f = tempfile.NamedTemporaryFile(
-            suffix=".html",
             prefix="python-jira-error-create-shared-project-",
+            suffix=".html",
             delete=False,
         )
         f.write(r.text)

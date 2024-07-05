@@ -40,27 +40,20 @@ class JiraWebserviceAdapter(Component):
     def _post_get_json(
         self,
         path,
-        data=None,
+        params=None,
         base=jira.client.JIRA.JIRA_BASE_URL,
     ):
         """Get the json for a given path and payload
 
         :param path: The subpath required
         :type path: str
-        :param data: a payload for the method
-        :type data: A json payload
+        :param params: a payload for the method
+        :type params: A json payload
         :param base: The Base JIRA URL, defaults to the instance base.
         :type base: Optional[str]
         :rtype: Union[Dict[str, Any], List[Dict[str, str]]]
         """
-        url = self.client._get_url(path, base)
-        r = self.client._session.post(url, data=data)
-        try:
-            r_json = jira.utils.json_loads(r)
-        except ValueError as e:
-            logging.error(f"{e}\n{r.text}")
-            raise e
-        return r_json
+        return self.client._get_json(path=path, base=base, params=params, use_post=True)
 
     @contextmanager
     def handle_404(self):

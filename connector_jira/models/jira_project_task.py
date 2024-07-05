@@ -56,14 +56,14 @@ class JiraProjectTask(models.Model):
     ]
 
     def _is_linked(self):
-        return self.mapped("jira_project_bind_id")._is_linked()
+        return self.jira_project_bind_id._is_linked()
 
-    def unlink(self):
+    @api.ondelete(at_uninstall=False)
+    def _unlink_unless_is_jira_task(self):
         if any(self.mapped("external_id")):
             raise exceptions.UserError(_("A Jira task cannot be deleted."))
-        return super().unlink()
 
-    @api.depends("jira_key")
+    @api.depends("backend_id.uri", "jira_key")
     def _compute_jira_issue_url(self):
         """Compute the external URL to JIRA."""
         for record in self:

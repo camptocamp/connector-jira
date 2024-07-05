@@ -66,7 +66,7 @@ class JiraConnectAppController(http.Controller):
     for the app, in state "disabled".
     Upon reception of an "enabled" lifecycle call, we set the backend to "enabled".
     Upon reception of a "disabled" lifecycle call, we set the backend to "disabled".
-    Upon reception of a "uninstalled" lifecycle call, we unlink the backend record.
+    Upon reception of an "uninstalled" lifecycle call, we unlink the backend record.
 
     Documentation:
     https://developer.atlassian.com/cloud/jira/platform/connect-app-descriptor/#lifecycle
@@ -82,35 +82,26 @@ class JiraConnectAppController(http.Controller):
     def app_descriptor(self, backend_id, **kwargs):
         ensure_db()
         request.update_env(user=odoo.SUPERUSER_ID)
-        env = request.env
-        backend = env["jira.backend"].search([("id", "=", backend_id)])
-        if not backend:
-            descriptor = {}
-        else:
-            descriptor = backend._get_app_descriptor()
-        mime = "application/json"
-
-        body = json.dumps(descriptor)
+        backend = request.env["jira.backend"].search([("id", "=", backend_id)])
+        body = json.dumps(backend._get_app_descriptor() if backend else {})
         return request.make_response(
-            body, [("Content-Type", mime), ("Content-Length", len(body))]
+            body, [("Content-Type", "application/json"), ("Content-Length", len(body))]
         )
 
     def _validate_jwt_token(self):
-        """use autorization header to validate the request
+        """Use authorization header to validate the request
+
         The process is described in
         https://developer.atlassian.com/cloud/jira/platform/security-for-connect-apps/
         """
-        authorization_header = request.httprequest.headers["Authorization"]
-        assert authorization_header.startswith(
-            "JWT "
-        ), "unexpected content in Authorization header"
-        jwt_token = authorization_header[4:]
+        auth_header = request.httprequest.headers["Authorization"]
+        assert auth_header.startswith("JWT "), "unexpected content in Auth header"
+        jwt_token = auth_header[4:]
         decoded = jwt.get_unverified_header(jwt_token)
         if "kid" in decoded:
+            kid = decoded["kid"]
             # pylint: disable=E8106
-            response = requests.get(
-                f"https://connect-install-keys.atlassian.com/{decoded['kid']}"
-            )
+            response = requests.get(f"https://connect-install-keys.atlassian.com/{kid}")
             response.raise_for_status()
             public_key = response.text
             response.close()
@@ -137,13 +128,10 @@ class JiraConnectAppController(http.Controller):
         self._validate_jwt_token()
         payload = request.get_json_data()
         _logger.info("installed: %s", payload)
-
         assert payload["eventType"] == "installed"
         ensure_db()
-        env = request.env
-        backend = env["jira.backend"].sudo().browse(backend_id)
-        response = backend._install_app(payload)
-        return {"status": response}
+        backend = request.env["jira.backend"].sudo().browse(backend_id)
+        return {"status": backend._install_app(payload)}
 
     @http.route(
         "/jira/<int:backend_id>/uninstalled",
@@ -157,10 +145,8 @@ class JiraConnectAppController(http.Controller):
         payload = request.get_json_data()
         _logger.info("uninstalled: %s", payload)
         assert payload["eventType"] == "uninstalled"
-        env = request.env
-        backend = env["jira.backend"].sudo().browse(backend_id)
-        response = backend._uninstall_app(payload)
-        return {"status": response}
+        backend = request.env["jira.backend"].sudo().browse(backend_id)
+        return {"status": backend._uninstall_app(payload)}
 
     @http.route(
         "/jira/<int:backend_id>/enabled",
@@ -175,13 +161,12 @@ class JiraConnectAppController(http.Controller):
         _logger.info("enabled: %s", payload)
         assert payload["eventType"] == "enabled"
         env = request.env
-        backend = env["jira.backend"].sudo().browse(backend_id)
+        backend = request.env["jira.backend"].sudo().browse(backend_id)
         backend._validate_jwt(
             request.httprequest.headers["Authorization"],
             f"{request.httprequest.path}?{request.httprequest.query_string}",
         )
-        response = backend._enable_app(payload)
-        return {"status": response}
+        return {"status": backend._enable_app(payload)}
 
     @http.route(
         "/jira/<int:backend_id>/disabled",
@@ -195,11 +180,9 @@ class JiraConnectAppController(http.Controller):
         payload = request.get_json_data()
         _logger.info("disabled: %s", payload)
         assert payload["eventType"] == "disabled"
-        env = request.env
-        backend = env["jira.backend"].sudo().browse(backend_id)
+        backend = request.env["jira.backend"].sudo().browse(backend_id)
         backend._validate_jwt(
             request.httprequest.headers["Authorization"],
             f"{request.httprequest.path}?{request.httprequest.query_string}",
         )
-        response = backend._disable_app(payload)
-        return {"status": response}
+        return {"status": backend._disable_app(payload)}

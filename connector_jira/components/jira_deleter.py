@@ -2,25 +2,9 @@
 # Copyright 2019 Brainbean Apps (https://brainbeanapps.com)
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
 
-"""
-
-Importers for Jira.
-
-An import can be skipped if the last sync date is more recent than
-the last update in Jira.
-
-They should call the ``bind`` method if the binder even if the records
-are already bound, to update the last sync date.
-
-"""
-
-import logging
-
 from odoo import _
 
 from odoo.addons.component.core import Component
-
-_logger = logging.getLogger(__name__)
 
 
 class JiraDeleter(Component):

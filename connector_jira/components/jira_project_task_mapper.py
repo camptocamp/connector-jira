@@ -27,7 +27,7 @@ class JiraProjectTaskMapper(Component):
         # On an Epic, you have 2 fields:
 
         #     a field like 'customfield_10003' labelled "Epic Name"
-        #     a field 'summary' labelled "Sumarry"
+        #     a field 'summary' labelled "Summary"
 
         # The other types of tasks have only the 'summary' field, the other is
         # empty. To simplify, we always try to read the Epic Name, which
@@ -42,9 +42,8 @@ class JiraProjectTaskMapper(Component):
 
     @mapping
     def issue_type(self, record):
-        binder = self.binder_for("jira.issue.type")
         jira_type_id = record["fields"]["issuetype"]["id"]
-        binding = binder.to_internal(jira_type_id)
+        binding = self.binder_for("jira.issue.type").to_internal(jira_type_id)
         return {"jira_issue_type_id": binding.id}
 
     @mapping
@@ -53,17 +52,15 @@ class JiraProjectTaskMapper(Component):
         if not assignee:
             return {"user_ids": False}
         jira_key = assignee["accountId"]
-        binder = self.binder_for("jira.res.users")
-        user = binder.to_internal(jira_key, unwrap=True)
+        user = self.binder_for("jira.res.users").to_internal(jira_key, unwrap=True)
         if not user:
-            email = assignee.get("emailAddress")
             raise MappingError(
                 _(
                     'No user found with accountId "%(jira_key)s" or email "%(email)s".'
                     "You must create a user or link it manually if the "
                     "login/email differs.",
                     jira_key=jira_key,
-                    email=email,
+                    email=assignee.get("emailAddress"),
                 )
             )
         return {"user_id": user.id}
@@ -74,12 +71,13 @@ class JiraProjectTaskMapper(Component):
 
     @mapping
     def project(self, record):
+        proj_binding = self.options.project_binding
         binder = self.binder_for("jira.project.project")
-        project = binder.unwrap_binding(self.options.project_binding)
+        project = binder.unwrap_binding(proj_binding)
         values = {
             "project_id": project.id,
             "company_id": project.company_id.id,
-            "jira_project_bind_id": self.options.project_binding.id,
+            "jira_project_bind_id": proj_binding.id,
         }
         if not project.active:
             values["active"] = False
@@ -89,9 +87,8 @@ class JiraProjectTaskMapper(Component):
     def epic(self, record):
         if not self.options.jira_epic:
             return {}
-        jira_epic_id = self.options.jira_epic["id"]
         binder = self.binder_for("jira.project.task")
-        binding = binder.to_internal(jira_epic_id)
+        binding = binder.to_internal(self.options.jira_epic["id"])
         return {"jira_epic_link_id": binding.id}
 
     @mapping
@@ -99,9 +96,7 @@ class JiraProjectTaskMapper(Component):
         jira_parent = record["fields"].get("parent")
         if not jira_parent:
             return {}
-        jira_parent_id = jira_parent["id"]
-        binder = self.binder_for("jira.project.task")
-        binding = binder.to_internal(jira_parent_id)
+        binding = self.binder_for("jira.project.task").to_internal(jira_parent["id"])
         return {"jira_parent_id": binding.id}
 
     @mapping
@@ -110,17 +105,13 @@ class JiraProjectTaskMapper(Component):
 
     @mapping
     def status(self, record):
-        status = record["fields"].get("status", {})
-        status_name = status.get("name")
+        status_name = record["fields"].get("status", {}).get("name")
         if not status_name:
             return {"stage_id": False}
         project_binder = self.binder_for("jira.project.project")
-        project_id = project_binder.unwrap_binding(self.options.project_binding)
-        stage = self.env["project.task.type"].search(
-            [("name", "=", status_name), ("project_ids", "=", project_id.id)],
-            limit=1,
-        )
-        return {"stage_id": stage.id}
+        project = project_binder.unwrap_binding(self.options.project_binding)
+        domain = [("name", "=", status_name), ("project_ids", "=", project.id)]
+        return {"stage_id": self.env["project.task.type"].search(domain, limit=1).id}
 
     @mapping
     def time_estimate(self, record):

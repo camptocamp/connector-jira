@@ -2,8 +2,6 @@
 # Copyright 2019 Brainbean Apps (https://brainbeanapps.com)
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl.html).
 
-import logging
-
 from pytz import timezone, utc
 
 from odoo import _
@@ -12,13 +10,7 @@ from odoo.addons.component.core import Component
 from odoo.addons.connector.components.mapper import mapping
 from odoo.addons.connector.exception import MappingError
 
-from .common import (
-    iso8601_to_naive_date,
-    iso8601_to_utc_datetime,
-    whenempty,
-)
-
-_logger = logging.getLogger(__name__)
+from .common import iso8601_to_naive_date, iso8601_to_utc_datetime, whenempty
 
 
 class JiraAnalyticLineMapper(Component):
@@ -32,10 +24,7 @@ class JiraAnalyticLineMapper(Component):
     def issue(self, record):
         issue = self.options.linked_issue
         assert issue
-        refs = {
-            "jira_issue_id": record["issueId"],
-            "jira_issue_key": issue["key"],
-        }
+        refs = {"jira_issue_id": record["issueId"], "jira_issue_key": issue["key"]}
         task_mapper = self.component(
             usage="import.mapper",
             model_name="jira.project.task",
@@ -46,10 +35,9 @@ class JiraAnalyticLineMapper(Component):
         if epic_field_name and epic_field_name in issue["fields"]:
             refs["jira_epic_issue_key"] = issue["fields"][epic_field_name]
         if self.backend_record.epic_link_on_epic:
-            issue_type = self.env["jira.issue.type"].browse(
-                issue_type_dict.get("jira_issue_type_id")
-            )
-            if issue_type.name == "Epic":
+            issue_type_id = issue_type_dict.get("jira_issue_type_id")
+            issue_type = self.env["jira.issue.type"].browse(issue_type_id)
+            if issue_type.exists() and issue_type.name == "Epic":
                 refs["jira_epic_issue_key"] = issue.get("key")
         return refs
 
@@ -64,64 +52,57 @@ class JiraAnalyticLineMapper(Component):
             tz = timezone(record["author"]["timeZone"])
         elif mode == "specific":
             tz = timezone(self.backend_record.worklog_date_timezone)
+        else:
+            raise NotImplementedError("Cannot parse date with mode '%s'", mode)
         return {"date": started.astimezone(tz).date()}
 
     @mapping
     def duration(self, record):
-        spent = float(record["timeSpentSeconds"])
-        # amount is in float in odoo... 2h30 = 2.5
-        return {"unit_amount": spent / 60 / 60}
+        # amount is in float in odoo... 9000.00s = 2h30m00s = 2.5h
+        return {"unit_amount": float(record["timeSpentSeconds"]) / 3600}
 
     @mapping
     def author(self, record):
-        jira_author = record["author"]
-        jira_author_key = jira_author["accountId"]
-        binder = self.binder_for("jira.res.users")
-        user = binder.to_internal(jira_author_key, unwrap=True)
+        author = record["author"]
+        key = author["accountId"]
+        user = self.binder_for("jira.res.users").to_internal(key, unwrap=True)
         if not user:
-            email = jira_author.get("emailAddress", "<unknown>")
             raise MappingError(
                 _(
                     "No user found with login '%(key)s' or email '%(mail)s'."
                     " You must create a user or link it manually if the"
                     " login/email differs.",
-                    key=jira_author_key,
-                    mail=email,
+                    key=key,
+                    mail=author.get("emailAddress", "<unknown>"),
                 )
             )
-        employee = (
-            self.env["hr.employee"]
-            .with_context(
-                active_test=False,
-            )
-            .search([("user_id", "=", user.id)], limit=1)
-        )
+        # NB: in v15.0, the employee was retrieved via a ``search()`` on ``hr.employee``
+        # with no constraints on the company; we change this to accessing field
+        # ``employee_id`` which is a computed field whose value depend on the
+        # environment's company to fetch the correct employee and avoids multi-company
+        # consistency issues.
+        # (We keep the ``active_test=False`` anyway)
+        employee = user.with_context(active_test=False).employee_id
         return {"user_id": user.id, "employee_id": employee.id}
 
     @mapping
     def project_and_task(self, record):
-        assert (
-            self.options.task_binding
-            or self.options.project_binding
-            or self.options.fallback_project
-        )
-        task_binding = self.options.task_binding
-        if not task_binding:
-            if self.options.fallback_project:
-                return {"project_id": self.options.fallback_project.id}
-            project = self.options.project_binding.odoo_id
-            if project:
-                return {
-                    "project_id": project.id,
-                    "jira_project_bind_id": self.options.project_binding.id,
-                }
-
-        project = task_binding.project_id
-        return {
-            "task_id": task_binding.odoo_id.id,
-            "project_id": project.id,
-            "jira_project_bind_id": task_binding.jira_project_bind_id.id,
-        }
+        if self.options.task_binding:
+            task_binding = self.options.task_binding
+            return {
+                "task_id": task_binding.odoo_id.id,
+                "project_id": task_binding.project_id.id,
+                "jira_project_bind_id": task_binding.jira_project_bind_id.id,
+            }
+        elif self.options.project_binding:
+            project_binding = self.options.project_binding
+            return {
+                "project_id": project_binding.odoo_id.id,
+                "jira_project_bind_id": project_binding.id,
+            }
+        elif self.options.fallback_project:
+            return {"project_id": self.options.fallback_project.id}
+        raise ValueError("No task binding, project binding or fallback project found.")
 
     @mapping
     def backend_id(self, record):

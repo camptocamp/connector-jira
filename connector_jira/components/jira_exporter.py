@@ -13,7 +13,6 @@ In addition to its export job, an exporter has to:
 
 """
 
-import logging
 from contextlib import contextmanager
 
 import psycopg2
@@ -22,8 +21,6 @@ from odoo import _, tools
 
 from odoo.addons.component.core import Component
 from odoo.addons.queue_job.exception import RetryableJobError
-
-_logger = logging.getLogger(__name__)
 
 
 class JiraExporter(Component):
@@ -71,8 +68,7 @@ class JiraExporter(Component):
                 raise
 
     def _export_dependency(self, relation, binding_model, component=None):
-        """
-        Export a dependency.
+        """Export a dependency.
 
         .. warning:: a commit is done at the end of the export of each
                      dependency. The reason for that is that we pushed a record
@@ -210,11 +206,11 @@ class JiraExporter(Component):
         """
         assert self.binding
 
-        if not self.external_id:
-            fields = None  # should be created with all the fields
-
         if self._has_to_skip():
             return
+
+        if not self.external_id:
+            fields = None  # should be created with all the fields
 
         # export the missing linked resources
         self._export_dependencies()

@@ -58,10 +58,7 @@ class JiraAnalyticLineImporter(Component):
         project_matcher = self.component(usage="jira.task.project.matcher")
         current_project_id = self.external_issue["fields"]["project"]["id"]
         while jira_issue_id:
-            issue = issue_adapter.read(
-                jira_issue_id,
-                fields=self._issue_fields_to_read,
-            )
+            issue = issue_adapter.read(jira_issue_id, fields=self._issue_fields_to_read)
             jira_project_id = issue["fields"]["project"]["id"]
             jira_issue_type_id = issue["fields"]["issuetype"]["id"]
             project_binding = project_matcher.find_project_binding(issue)

@@ -14,11 +14,7 @@ are already bound, to update the last sync date.
 
 """
 
-import logging
-
 from odoo.addons.component.core import AbstractComponent
-
-_logger = logging.getLogger(__name__)
 
 
 class JiraDelayedBatchImporter(AbstractComponent):

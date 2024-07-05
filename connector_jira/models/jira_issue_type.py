@@ -15,9 +15,7 @@ class JiraIssueType(models.Model):
 
     def is_sync_for_project(self, project_binding):
         self.ensure_one()
-        if not project_binding:
-            return False
-        return self in project_binding.sync_issue_type_ids
+        return bool(project_binding) and self in project_binding.sync_issue_type_ids
 
     def import_batch(self, backend, from_date=None, to_date=None):
         """Prepare a batch import of issue types from Jira
@@ -25,5 +23,4 @@ class JiraIssueType(models.Model):
         from_date and to_date are ignored for issue types
         """
         with backend.work_on(self._name) as work:
-            importer = work.component(usage="batch.importer")
-            importer.run()
+            work.component(usage="batch.importer").run()

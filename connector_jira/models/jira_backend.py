@@ -189,7 +189,6 @@ class JiraBackend(models.Model):
 
     def _compute_app_descriptor_url(self):
         base_url = self._get_base_url()
-
         for rec in self:
             rec.app_descriptor_url = f"{base_url}/jira/{rec.id}/app-descriptor.json"
 
@@ -207,10 +206,8 @@ class JiraBackend(models.Model):
 
     @api.constrains("project_template_shared")
     def check_jira_key(self):
-        for backend in self:
-            if not backend.project_template_shared:
-                continue
-            valid = self.env["jira.project.project"]._jira_key_valid
+        valid = self.env["jira.project.project"]._jira_key_valid
+        for backend in self.filtered("project_template_shared"):
             if not valid(backend.project_template_shared):
                 raise exceptions.ValidationError(
                     _("%s is not a valid JIRA Key") % backend.project_template_shared
@@ -241,8 +238,8 @@ class JiraBackend(models.Model):
                 )
 
     def _inverse_date_fields(self, field_name, component_usage):
+        ts_model = self.env["jira.backend.timestamp"]
         for rec in self:
-            ts_model = self.env["jira.backend.timestamp"]
             timestamp = ts_model._timestamp_for_field(rec, field_name, component_usage)
             if not timestamp._lock():
                 raise exceptions.UserError(
@@ -251,7 +248,7 @@ class JiraBackend(models.Model):
                         "probably due to an ongoing synchronization."
                     )
                 )
-            value = getattr(rec, field_name)
+            value = rec[field_name]
             # As the timestamp field is using MilliDatetime, we lose
             # the milliseconds precision when a user writes a new
             # date on the backend. This is not really an issue as we
@@ -289,11 +286,8 @@ class JiraBackend(models.Model):
         concurrency issue arises, it will be logged and rollbacked silently.
         """
         self.ensure_one()
-        ts_model = self.env["jira.backend.timestamp"]
-        timestamp = ts_model._timestamp_for_field(
-            self,
-            from_date_field,
-            component_usage,
+        timestamp = self.env["jira.backend.timestamp"]._timestamp_for_field(
+            self, from_date_field, component_usage,
         )
         self.env[model].with_delay(priority=9).run_batch_timestamp(
             self, timestamp, force=force
@@ -306,9 +300,7 @@ class JiraBackend(models.Model):
     def activate_epic_link(self):
         self.ensure_one()
         with self.work_on("jira.backend") as work:
-            adapter = work.component(usage="backend.adapter")
-            jira_fields = adapter.list_fields()
-            for field in jira_fields:
+            for field in work.component(usage="backend.adapter").list_fields():
                 custom_ref = field.get("schema", {}).get("custom")
                 if custom_ref == "com.pyxis.greenhopper.jira:gh-epic-link":
                     self.epic_link_field_name = field["id"]
@@ -331,19 +323,18 @@ class JiraBackend(models.Model):
     def _onchange_worklog_date_import_timezone_mode(self):
         for jira_backend in self:
             if jira_backend.worklog_date_timezone_mode == "specific":
-                continue
-            jira_backend.worklog_date_timezone = False
+                jira_backend.worklog_date_timezone = self.env.user.tz or "UTC"
+            else:
+                jira_backend.worklog_date_timezone = False
 
     def check_connection(self):
         self.ensure_one()
         try:
             self.get_api_client().myself()
-        except (ValueError, requests.exceptions.ConnectionError) as err:
-            raise exceptions.UserError(_("Failed to connect (%s)") % (err,)) from err
-        except JIRAError as err:
-            raise exceptions.UserError(
-                _("Failed to connect (%s)") % (err.text,)
-            ) from err
+        except (ValueError, requests.exceptions.ConnectionError) as e:
+            raise exceptions.UserError(_("Failed to connect (%s)", e)) from e
+        except JIRAError as e:
+            raise exceptions.UserError(_("Failed to connect (%s)", e.text)) from e
         raise exceptions.UserError(_("Connection successful"))
 
     def import_project_task(self):
@@ -375,7 +366,7 @@ class JiraBackend(models.Model):
     def import_res_users(self):
         self.report_user_sync = None
         result = self.env["res.users"].search([]).link_with_jira(backends=self)
-        for __, bknd_result in result.items():
+        for bknd_result in result.values():
             if bknd_result.get("error"):
                 self.report_user_sync = self.env["ir.ui.view"]._render_template(
                     "connector_jira.backend_report_user_sync",
@@ -384,9 +375,7 @@ class JiraBackend(models.Model):
         return True
 
     def get_user_resolution_order(self):
-        return [
-            "email",
-        ]
+        return ["email"]
 
     def import_issue_type(self):
         self.env["jira.issue.type"].import_batch(self)
@@ -396,54 +385,44 @@ class JiraBackend(models.Model):
         self.ensure_one()
         # tokens are only readable by connector managers
         backend = self.sudo()
-
-        options = {
-            "server": backend.uri,
-            "verify": backend.verify_ssl,
-        }
-        jwt = {
-            "secret": backend.private_key,
-            "payload": {
-                "iss": self.application_key,  # application key in the app descriptor
-            },
-        }
+        # application key in the app descriptor
+        app_key = self.application_key
         return JIRA(
-            options=options, jwt=jwt, timeout=JIRA_TIMEOUT, get_server_info=False
+            options={"server": backend.uri, "verify": backend.verify_ssl},
+            jwt={"secret": backend.private_key, "payload": {"iss": app_key}},
+            timeout=JIRA_TIMEOUT,
+            get_server_info=False,
         )
 
     @api.model
     def _scheduler_import_project_task(self):
-        backends = self.search([("state", "=", "running")])
-        for backend in backends:
+        for backend in self.search([("state", "=", "running")]):
             backend.import_project_task()
 
     @api.model
     def _scheduler_import_res_users(self):
-        backends = self.search([("state", "=", "running")])
-        for backend in backends:
+        for backend in self.search([("state", "=", "running")]):
             backend.import_res_users()
 
     @api.model
     def _scheduler_import_analytic_line(self):
-        backends = self.search([("state", "=", "running")])
-        for backend in backends:
-            backend.search([]).import_analytic_line()
+        for backend in self.search([("state", "=", "running")]):
+            backend.import_analytic_line()
 
     @api.model
     def _scheduler_delete_analytic_line(self):
-        backends = self.search([("state", "=", "running")])
-        for backend in backends:
-            backend.search([]).delete_analytic_line()
+        for backend in self.search([("state", "=", "running")]):
+            backend.delete_analytic_line()
 
     def make_issue_url(self, jira_issue_id):
         return urllib.parse.urljoin(self.uri, f"/browse/{jira_issue_id}")
 
+    @api.model
     def _get_base_url(self):
-        fqdn = self.env["ir.config_parameter"].get_param("web.base.url", "")
-        if "://" in fqdn:
-            fqdn = fqdn.split("://", maxsplit=1)[-1]
-        base_url = "https://" + fqdn
-        return base_url
+        base_url = self.env["ir.config_parameter"].get_param("web.base.url", "")
+        if "://" in base_url:
+            base_url = base_url.split("://", maxsplit=1)[-1]
+        return "https://" + base_url
 
     def _get_app_descriptor(self):
         self.ensure_one()
@@ -538,17 +517,9 @@ class JiraBackend(models.Model):
     def _uninstall_app(self, payload):
         self.ensure_one()
         # wait for disabled to complete
-        self.env.cr.execute(
-            "SELECT id from jira_backend WHERE id = %s FOR UPDATE",
-            (self.id,),
-        )
-        self.write(
-            {
-                "public_key": False,
-                "private_key": False,
-                "state": "setup",
-            }
-        )
+        query = "SELECT id from jira_backend WHERE id = %s FOR UPDATE"
+        self.env.cr.execute(query, (self.id,))
+        self.write({"public_key": False, "private_key": False, "state": "setup"})
         _logger.info("Uninstalled Jira backend for uri %s", self.uri)
         return "ok"
 
@@ -563,10 +534,8 @@ class JiraBackend(models.Model):
 
     def _disable_app(self, payload):
         self.ensure_one()
-        self.env.cr.execute(
-            "SELECT id from jira_backend WHERE id = %s FOR UPDATE",
-            (self.id,),
-        )
+        query = "SELECT id from jira_backend WHERE id = %s FOR UPDATE"
+        self.env.cr.execute(query, (self.id,))
         values = self._prepare_backend_values(payload)
         values["state"] = "setup"
         _logger.info("disable %s -> %s", self.ids, values)
@@ -574,22 +543,19 @@ class JiraBackend(models.Model):
         _logger.info("Disabled Jira backend for uri %s", self.mapped("uri"))
         return "ok"
 
-    def _validate_jwt(self, authorization_header, query_url=None):
-        """validation if the JSON Web Token
+    def _validate_jwt(self, auth_header, query_url=None):
+        """Validation for the JSON Web Token
 
-        Use the algorithm provided by the atlassan module to compute the 'iss' hash
+        Use the algorithm provided by the Atlassian module to compute the 'iss' hash
         from the URL and compare it to the value in the token, in addition to the
         standard claims checks.
         """
         self.ensure_one()
-        assert authorization_header.startswith(
-            "JWT "
-        ), "unexpected content in Authorization header"
-        jwt_token = authorization_header[4:]
+        assert auth_header.startswith("JWT "), "Unexpected content in Auth header"
         # see https://developer.atlassian.com/cloud/jira/software/understanding-jwt/
         # for more info
         decoded = jwt.decode(
-            jwt_token,
+            auth_header[4:],
             self.private_key,
             algorithms=["HS256"],
             # audience=self._get_base_url(),

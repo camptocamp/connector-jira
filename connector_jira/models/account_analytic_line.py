@@ -46,6 +46,54 @@ class AccountAnalyticLine(models.Model):
         store=True,
     )
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            self._connector_jira_create_validate(vals)
+        return super().create(vals_list)
+
+    @api.model
+    def _connector_jira_create_validate(self, vals):
+        project_id = vals.get("project_id")
+        if project_id:
+            project = self.env["project.project"].sudo().browse(project_id).exists()
+            if (
+                not self.env.context.get("connector_jira")
+                and project.jira_bind_ids._is_linked()
+            ):
+                raise exceptions.UserError(
+                    _("Timesheet can not be created in project linked to JIRA!")
+                )
+
+    def write(self, vals):
+        self._connector_jira_write_validate(vals)
+        return super().write(vals)
+
+    def _connector_jira_write_validate(self, vals):
+        if (
+            not self.env.context.get("connector_jira")
+            and self.jira_bind_ids._is_linked()
+        ):
+            new_values = self._convert_to_write(vals)
+            for old_values in self.read(list(vals.keys()), load="_classic_write"):
+                old_values.pop("id", None)
+                old_values = self._convert_to_write(old_values)
+                for field in self._get_connector_jira_fields():
+                    if field in vals and new_values[field] != old_values[field]:
+                        raise exceptions.UserError(
+                            _("Timesheet linked to JIRA Worklog cannot be modified!")
+                        )
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_except_records_are_linked(self):
+        if (
+            not self.env.context.get("connector_jira")
+            and self.jira_bind_ids._is_linked()
+        ):
+            raise exceptions.UserError(
+                _("Timesheet linked to JIRA Worklog can not be deleted!")
+            )
+
     @api.depends(
         "jira_bind_ids",
         "jira_bind_ids.jira_issue_key",
@@ -67,6 +115,7 @@ class AccountAnalyticLine(models.Model):
             record.jira_issue_type_id = main_binding.jira_issue_type_id
             record.jira_epic_issue_key = main_binding.jira_epic_issue_key
             record.jira_epic_issue_url = main_binding.jira_epic_issue_url
+
         no_bind = self - with_bind
         if no_bind:
             no_bind.update(
@@ -91,65 +140,6 @@ class AccountAnalyticLine(models.Model):
             "date",
             "unit_amount",
         ]
-
-    @api.model
-    def _connector_jira_create_validate(self, vals):
-        ProjectProject = self.env["project.project"]
-        project_id = vals.get("project_id")
-        if project_id:
-            project_id = ProjectProject.sudo().browse(project_id)
-            if (
-                not self.env.context.get("connector_jira")
-                and project_id.mapped("jira_bind_ids")._is_linked()
-            ):
-                raise exceptions.UserError(
-                    _("Timesheet can not be created in project linked to JIRA!")
-                )
-
-    def _connector_jira_write_validate(self, vals):
-        if (
-            not self.env.context.get("connector_jira")
-            and self.mapped("jira_bind_ids")._is_linked()
-        ):
-            fields = list(vals.keys())
-            new_values = self._convert_to_write(
-                vals,
-            )
-            for old_values in self.read(fields, load="_classic_write"):
-                old_values = self._convert_to_write(
-                    old_values,
-                )
-                for field in self._get_connector_jira_fields():
-                    if field not in fields:
-                        continue
-                    if new_values[field] == old_values[field]:
-                        continue
-                    raise exceptions.UserError(
-                        _("Timesheet linked to JIRA Worklog can not be modified!")
-                    )
-
-    def _connector_jira_unlink_validate(self):
-        if (
-            not self.env.context.get("connector_jira")
-            and self.mapped("jira_bind_ids")._is_linked()
-        ):
-            raise exceptions.UserError(
-                _("Timesheet linked to JIRA Worklog can not be deleted!")
-            )
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        for vals in vals_list:
-            self._connector_jira_create_validate(vals)
-        return super().create(vals_list)
-
-    def write(self, vals):
-        self._connector_jira_write_validate(vals)
-        return super().write(vals)
-
-    def unlink(self):
-        self._connector_jira_unlink_validate()
-        return super().unlink()
 
     def action_open_refresh_worklogs_from_jira_wizard(self):
         return {

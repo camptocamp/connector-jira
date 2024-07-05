@@ -55,9 +55,10 @@ class ProjectLinkJira(models.TransientModel):
         name = ""
         project_id = self.default_get(["project_id"]).get("project_id")
         if project_id:
-            valid = self.env["jira.project.project"]._jira_key_valid
-            project = self.env["project.project"].browse(project_id)
-            name = project.name if valid(project.name) else ""
+            project_name = self.env["project.project"].browse(project_id).exists().name
+            validator = self.env["jira.project.project"]._jira_key_valid
+            if validator(project_name):
+                name = project_name
         return name
 
     @api.model
@@ -76,18 +77,14 @@ class ProjectLinkJira(models.TransientModel):
 
     @api.constrains("jira_key")
     def check_jira_key(self):
-        for record in self:
-            valid = self.env["jira.project.project"]._jira_key_valid
-            if not valid(record.jira_key):
-                raise exceptions.ValidationError(
-                    _("%s is not a valid JIRA Key") % record.jira_key
-                )
+        validator = self.env["jira.project.project"]._jira_key_valid
+        for key in self.mapped("jira_key"):
+            if not validator(key):
+                raise exceptions.ValidationError(_("%s is not a valid JIRA Key", key))
 
     def add_all_issue_types(self):
-        issue_types = self.env["jira.issue.type"].search(
-            [("backend_id", "=", self.backend_id.id)]
-        )
-        self.sync_issue_type_ids = issue_types.ids
+        domain = [("backend_id", "=", self.backend_id.id)]
+        self.sync_issue_type_ids = self.env["jira.issue.type"].search(domain)
 
     def state_exit_start(self):
         if self.sync_action == "export":
@@ -110,17 +107,16 @@ class ProjectLinkJira(models.TransientModel):
         self.state = "final"
 
     def _prepare_base_binding_values(self):
-        values = {
+        return {
             "backend_id": self.backend_id.id,
             "odoo_id": self.project_id.id,
             "jira_key": self.jira_key,
         }
-        return values
 
     def _prepare_export_binding_values(self):
-        values = self._prepare_base_binding_values()
-        values.update(
-            {
+        return dict(
+            self._prepare_base_binding_values(),
+            **{
                 "backend_id": self.backend_id.id,
                 "odoo_id": self.project_id.id,
                 "sync_action": "export",
@@ -129,7 +125,6 @@ class ProjectLinkJira(models.TransientModel):
                 "project_template_shared": self.project_template_shared,
             }
         )
-        return values
 
     def _create_export_binding(self):
         values = self._prepare_export_binding_values()
@@ -149,18 +144,17 @@ class ProjectLinkJira(models.TransientModel):
         issue_types = self.env["jira.issue.type"].browse()
         for jira_issue_type in jira_project.issueTypes:
             issue_types |= type_binder.to_internal(jira_issue_type.id)
-        self.sync_issue_type_ids = issue_types.ids
+        self.sync_issue_type_ids = issue_types
 
     def _prepare_link_binding_values(self, jira_project):
-        values = self._prepare_base_binding_values()
-        values.update(
-            {
+        return dict(
+            self._prepare_base_binding_values(),
+            **{
                 "sync_action": self.sync_action,
                 "external_id": jira_project.id,
                 "project_type": jira_project.projectTypeKey,
-            }
+            },
         )
-        return values
 
     def _copy_issue_types(self):
-        self.jira_project_id.sync_issue_type_ids = self.sync_issue_type_ids.ids
+        self.jira_project_id.sync_issue_type_ids = self.sync_issue_type_ids

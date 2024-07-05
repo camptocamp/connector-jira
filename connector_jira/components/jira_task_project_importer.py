@@ -35,13 +35,10 @@ class JiraProjectTaskImporter(Component):
         self.project_binding = matcher.find_project_binding(self.external_record)
 
     def _is_issue_type_sync(self):
-        project_binding = self.project_binding
-        task_sync_type_id = self.external_record["fields"]["issuetype"]["id"]
-        task_sync_type_binder = self.binder_for("jira.issue.type")
-        task_sync_type_binding = task_sync_type_binder.to_internal(
-            task_sync_type_id,
+        task_sync_type_binding = self.binder_for("jira.issue.type").to_internal(
+            self.external_record["fields"]["issuetype"]["id"]
         )
-        return task_sync_type_binding.is_sync_for_project(project_binding)
+        return task_sync_type_binding.is_sync_for_project(self.project_binding)
 
     def _create_data(self, map_record, **kwargs):
         return super()._create_data(
@@ -73,8 +70,9 @@ class JiraProjectTaskImporter(Component):
 
     def _import_dependency_assignee(self):
         jira_assignee = self.external_record["fields"].get("assignee") or {}
-        jira_key = jira_assignee.get("accountId")
-        self._import_dependency(jira_key, "jira.res.users", record=jira_assignee)
+        if jira_assignee:
+            jira_key = jira_assignee.get("accountId")
+            self._import_dependency(jira_key, "jira.res.users", record=jira_assignee)
 
     def _import_dependency_issue_type(self):
         jira_issue_type = self.external_record["fields"]["issuetype"]

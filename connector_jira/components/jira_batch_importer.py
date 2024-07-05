@@ -14,11 +14,7 @@ are already bound, to update the last sync date.
 
 """
 
-import logging
-
 from odoo.addons.component.core import AbstractComponent
-
-_logger = logging.getLogger(__name__)
 
 
 class JiraBatchImporter(AbstractComponent):
@@ -33,8 +29,7 @@ class JiraBatchImporter(AbstractComponent):
 
     def run(self):
         """Run the synchronization, search all JIRA records"""
-        record_ids = self._search()
-        for record_id in record_ids:
+        for record_id in self._search():
             self._import_record(record_id)
 
     def _search(self):

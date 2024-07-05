@@ -8,6 +8,7 @@ from odoo.osv import expression
 
 class ProjectProject(models.Model):
     _inherit = "project.project"
+    _rec_names_search = ["jira_key"]
 
     jira_bind_ids = fields.One2many(
         comodel_name="jira.project.project",
@@ -25,8 +26,7 @@ class ProjectProject(models.Model):
     @api.depends("jira_bind_ids.jira_key")
     def _compute_jira_key(self):
         for project in self:
-            keys = project.mapped("jira_bind_ids.jira_key")
-            project.jira_key = ", ".join(keys)
+            project.jira_key = ", ".join(project.jira_bind_ids.mapped("jira_key"))
 
     # pylint: disable=W8110
     @api.depends("jira_key")
@@ -34,21 +34,6 @@ class ProjectProject(models.Model):
         super()._compute_display_name()
         for project in self.filtered("jira_key"):
             project.display_name = f"[{project.jira_key}] {project.display_name}"
-
-    @api.model
-    def name_search(self, name="", args=None, operator="ilike", limit=100):
-        res = super().name_search(name, args, operator, limit)
-        if not name:
-            return res
-        domain = [
-            "|",
-            ("jira_key", "=ilike", name + "%"),
-            ("id", "in", [x[0] for x in res]),
-        ]
-        if operator in expression.NEGATIVE_TERM_OPERATORS:
-            domain = ["&", "!"] + domain[1:]
-        projects = self.search(domain + (args or []), limit=limit)
-        return [(p.id, p.display_name) for p in projects.sudo()]
 
     def create_and_link_jira(self):
         self.ensure_one()
