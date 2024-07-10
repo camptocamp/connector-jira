@@ -77,7 +77,7 @@ class JiraBackend(models.Model):
             try:
                 user = user_binder.to_internal(user_data["key"], unwrap=True)
             except ValueError:
-                _logger.error("User %(key)s not found" % user_data)
+                _logger.error("User %s not found", user_data)
                 continue
             mapping[entry["status"]].append(user.id)
         for state, user_ids in mapping.items():
