@@ -5,16 +5,10 @@
 from odoo.addons.component.core import Component
 
 
-class WorklogAdapter(Component):
+class JiraWorklogAdapter(Component):
     _inherit = "jira.worklog.adapter"
 
     _tempo_timesheets_api_path_base = "{server}/rest/tempo-timesheets/3/{path}"
-
-    def _tempo_timesheets_get_url(self, path):
-        return self.client._get_url(
-            path,
-            base=self._tempo_timesheets_api_path_base,
-        )
 
     def read(self, issue_id, worklog_id):
         worklog = super().read(issue_id, worklog_id)
@@ -27,5 +21,7 @@ class WorklogAdapter(Component):
     def tempo_timesheets_read(self, worklog_id):
         url = self._tempo_timesheets_get_url("worklogs/%s" % worklog_id)
         with self.handle_404():
-            response = self.client._session.get(url)
-        return response.json()
+            return self.client._session.get(url).json()
+
+    def _tempo_timesheets_get_url(self, path):
+        return self.client._get_url(path, base=self._tempo_timesheets_api_path_base)
