@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
     <record model="webservice.backend" id="tempo_timesheet_other_location_ws">
         <field name="name">Tempo Timesheets (other locations)</field>
