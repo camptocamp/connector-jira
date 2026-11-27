@@ -3,8 +3,6 @@
 
 import logging
 
-from odoo import tools
-
 from odoo.addons.component.core import Component
 
 _logger = logging.getLogger(__name__)
@@ -36,7 +34,7 @@ class JiraProjectBinder(Component):
         :rtype: recordset
         """
         domain = [
-            (self._external_field, "=", tools.ustr(external_id)),
+            (self._external_field, "=", str(external_id)),
             (self._backend_field, "=", self.backend_record.id),
         ]
         if not organizations:
